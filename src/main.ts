@@ -8,7 +8,7 @@ const app = document.querySelector('#app') as HTMLDivElement
 app.innerHTML = `
   <div class="app">
     <header class="app-header" role="banner">
-      <button class="theme-toggle" data-theme-toggle aria-label="Switch to light mode">🌙</button>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle color theme">🌙</button>
       <h1>CKKS Lab: Approximate FHE for Real-Valued ML</h1>
       <p class="subtitle">
         Educational CKKS over toy parameters (n=8, slots=4, scale=2^10, modulus chain [2^30, 2^20]).
@@ -60,11 +60,15 @@ app.innerHTML = `
         </div>
         <p>
           For bit-level FHE (TFHE):
-          <a href="https://systemslibrarian.github.io/crypto-lab-blind-oracle/" target="_blank" rel="noreferrer">https://systemslibrarian.github.io/crypto-lab-blind-oracle/</a>
+          <a href="https://systemslibrarian.github.io/crypto-lab-blind-oracle/" target="_blank" rel="noopener noreferrer">
+            Blind Oracle demo<span class="sr-only"> (opens in new tab)</span>
+          </a>
         </p>
         <p>
           For exact integer FHE (BGV/BFV):
-          <a href="https://systemslibrarian.github.io/crypto-lab-fhe-arena/" target="_blank" rel="noreferrer">https://systemslibrarian.github.io/crypto-lab-fhe-arena/</a>
+          <a href="https://systemslibrarian.github.io/crypto-lab-fhe-arena/" target="_blank" rel="noopener noreferrer">
+            FHE Arena demo<span class="sr-only"> (opens in new tab)</span>
+          </a>
         </p>
       </section>
 
@@ -86,7 +90,7 @@ app.innerHTML = `
             <input id="vec-b" type="text" value="0.5, 1.3, 2.8, 4.1" />
           </div>
         </div>
-        <div class="row" role="toolbar" aria-label="Exhibit 2 controls">
+        <div class="row" role="group" aria-label="Exhibit 2 controls">
           <button class="action" data-e2-enc-a>Encrypt A</button>
           <button class="action" data-e2-enc-b>Encrypt B</button>
           <button class="action" data-e2-add>Add ciphertexts</button>
@@ -95,15 +99,15 @@ app.innerHTML = `
         <div class="grid-2">
           <div>
             <h3>ct(A)</h3>
-            <pre class="mono" data-e2-cta>awaiting...</pre>
+            <pre class="mono" data-e2-cta aria-live="polite" aria-atomic="true">awaiting...</pre>
           </div>
           <div>
             <h3>ct(B)</h3>
-            <pre class="mono" data-e2-ctb>awaiting...</pre>
+            <pre class="mono" data-e2-ctb aria-live="polite" aria-atomic="true">awaiting...</pre>
           </div>
         </div>
         <h3>ct(A + B)</h3>
-        <pre class="mono" data-e2-sum>awaiting...</pre>
+        <pre class="mono" data-e2-sum aria-live="polite" aria-atomic="true">awaiting...</pre>
         <p data-e2-out aria-live="polite" role="status">Expected: [2.0, 4.0, 6.0, 4.9]</p>
         <div class="callout" role="note" data-e2-scale>
           Scale visualizer: 1.5 × 1024 = 1536, 0.5 × 1024 = 512, sum=2048, decode=2048/1024=2.0.
@@ -126,14 +130,14 @@ app.innerHTML = `
             <input id="mul-b" type="text" value="2.0, 3.0" />
           </div>
         </div>
-        <div class="row" role="toolbar" aria-label="Exhibit 3 controls">
+        <div class="row" role="group" aria-label="Exhibit 3 controls">
           <button class="action" data-e3-enc>Encrypt A and B</button>
           <button class="action" data-e3-mul>Multiply ciphertexts</button>
           <button class="action action-orange" data-e3-rescale>Rescale</button>
           <button class="action" data-e3-dec>Decrypt</button>
         </div>
-        <pre class="mono" data-e3-ct>awaiting...</pre>
-        <p data-e3-out aria-live="polite">Result: awaiting operation</p>
+        <pre class="mono" data-e3-ct aria-live="polite" aria-atomic="true">awaiting...</pre>
+        <p data-e3-out aria-live="polite" role="status">Result: awaiting operation</p>
         <div class="table-wrap">
           <table aria-label="CKKS multiplication depth table">
             <thead>
@@ -159,32 +163,32 @@ app.innerHTML = `
         <div class="slider-grid">
           <div>
             <label for="x1">x1 (-1 to 1)</label>
-            <input id="x1" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.3" />
-            <div class="slider-val" data-x-val="0">0.3</div>
+            <input id="x1" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.3" aria-describedby="x1-val" />
+            <output id="x1-val" class="slider-val" data-x-val="0">0.3</output>
           </div>
           <div>
             <label for="x2">x2 (-1 to 1)</label>
-            <input id="x2" data-x-slider type="range" min="-1" max="1" step="0.1" value="-0.1" />
-            <div class="slider-val" data-x-val="1">-0.1</div>
+            <input id="x2" data-x-slider type="range" min="-1" max="1" step="0.1" value="-0.1" aria-describedby="x2-val" />
+            <output id="x2-val" class="slider-val" data-x-val="1">-0.1</output>
           </div>
           <div>
             <label for="x3">x3 (-1 to 1)</label>
-            <input id="x3" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.6" />
-            <div class="slider-val" data-x-val="2">0.6</div>
+            <input id="x3" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.6" aria-describedby="x3-val" />
+            <output id="x3-val" class="slider-val" data-x-val="2">0.6</output>
           </div>
           <div>
             <label for="x4">x4 (-1 to 1)</label>
-            <input id="x4" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.2" />
-            <div class="slider-val" data-x-val="3">0.2</div>
+            <input id="x4" data-x-slider type="range" min="-1" max="1" step="0.1" value="0.2" aria-describedby="x4-val" />
+            <output id="x4-val" class="slider-val" data-x-val="3">0.2</output>
           </div>
         </div>
-        <div class="row" role="toolbar" aria-label="Exhibit 4 controls">
+        <div class="row" role="group" aria-label="Exhibit 4 controls">
           <button class="action" data-e4-plain>Run plaintext inference</button>
           <button class="action" data-e4-enc>Encrypt inputs</button>
           <button class="action" data-e4-run>Run encrypted inference</button>
           <button class="action action-orange" data-e4-dec>Decrypt result</button>
         </div>
-        <pre class="mono" data-e4-log>awaiting...</pre>
+        <pre class="mono" data-e4-log aria-live="polite" aria-atomic="true">awaiting...</pre>
         <div class="table-wrap">
           <table aria-label="ReLU vs polynomial approximation">
             <thead><tr><th scope="col">x</th><th scope="col">ReLU(x)</th><th scope="col">Poly approx</th></tr></thead>
@@ -198,12 +202,12 @@ app.innerHTML = `
         <p>
           Encoding error is ~1/Δ, RLWE noise is noise/Δ, and each rescaling loses additional precision bits.
         </p>
-        <div class="row" role="toolbar" aria-label="Exhibit 5 controls">
+        <div class="row" role="group" aria-label="Exhibit 5 controls">
           <button class="action" data-e5-reset>Reset tracker</button>
           <button class="action" data-e5-add>Add ciphertext</button>
           <button class="action" data-e5-mul>Multiply + rescale</button>
         </div>
-        <pre class="mono" data-e5-log>awaiting...</pre>
+        <pre class="mono" data-e5-log aria-live="polite" aria-atomic="true">awaiting...</pre>
         <div class="callout" role="note">
           Larger Δ means more precision but also larger modulus/ciphertexts. Production CKKS typically chooses Δ in [2^40, 2^60].
         </div>
@@ -239,9 +243,9 @@ app.innerHTML = `
         </p>
         <nav aria-label="Cross-demo links">
           <ul class="link-list">
-            <li><a href="https://systemslibrarian.github.io/crypto-lab-blind-oracle/" target="_blank" rel="noreferrer">Blind Oracle (TFHE)</a></li>
-            <li><a href="https://systemslibrarian.github.io/crypto-lab-fhe-arena/" target="_blank" rel="noreferrer">FHE Arena (BGV/BFV)</a></li>
-            <li><a href="https://systemslibrarian.github.io/crypto-compare/" target="_blank" rel="noreferrer">Crypto Compare</a></li>
+            <li><a href="https://systemslibrarian.github.io/crypto-lab-blind-oracle/" target="_blank" rel="noopener noreferrer">Blind Oracle (TFHE)<span class="sr-only"> (opens in new tab)</span></a></li>
+            <li><a href="https://systemslibrarian.github.io/crypto-lab-fhe-arena/" target="_blank" rel="noopener noreferrer">FHE Arena (BGV/BFV)<span class="sr-only"> (opens in new tab)</span></a></li>
+            <li><a href="https://systemslibrarian.github.io/crypto-compare/" target="_blank" rel="noopener noreferrer">Crypto Compare<span class="sr-only"> (opens in new tab)</span></a></li>
           </ul>
         </nav>
       </section>
@@ -257,7 +261,7 @@ const themeToggleBtn = document.querySelector('[data-theme-toggle]') as HTMLButt
 
 function syncThemeToggle(theme: Theme): void {
   themeToggleBtn.textContent = theme === 'dark' ? '🌙' : '☀️'
-  themeToggleBtn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')
+  themeToggleBtn.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`)
 }
 
 function setTheme(theme: Theme): void {
@@ -333,7 +337,11 @@ const e2Scale = document.querySelector('[data-e2-scale]') as HTMLElement
   e2Out.textContent = `Expected ${formatVec(expected)}\nActual ${formatVec(actual)}\nPer-slot error ${err.map((v) => engine.scientific(v)).join(', ')}\nApproximation error is small and bounded by scale/noise settings.`
 
   const s = engine.params.baseScale
-  e2Scale.textContent = `Scale visualizer: 1.5 × ${s} = ${1.5 * s}, 0.5 × ${s} = ${0.5 * s}, sum=${2 * s}, decode=${(2 * s) / s}.`
+  const a0 = a[0]
+  const b0 = b[0]
+  const encA = Math.round(a0 * s)
+  const encB = Math.round(b0 * s)
+  e2Scale.textContent = `Scale visualizer: ${a0} × ${s} = ${encA}, ${b0} × ${s} = ${encB}, sum=${encA + encB}, decode=${encA + encB}/${s} = ${(encA + encB) / s}.`
 })
 
 let e3A: CkksCiphertext | null = null
@@ -377,8 +385,11 @@ const e3Out = document.querySelector('[data-e3-out]') as HTMLElement
     e3Out.textContent = 'Run multiply then rescale first.'
     return
   }
+  const a = parseVector((document.getElementById('mul-a') as HTMLInputElement).value, 2)
+  const b = parseVector((document.getElementById('mul-b') as HTMLInputElement).value, 2)
+  const expected = a.map((v, i) => v * b[i])
   const out = engine.decryptVector(e3Mul, 2)
-  e3Out.textContent = `Decrypted result ≈ ${formatVec(out)}. Expected near [3.0, 8.1]. Small precision loss after rescaling is expected.`
+  e3Out.textContent = `Decrypted result ≈ ${formatVec(out)}. Expected near ${formatVec(expected)}. Small precision loss after rescaling is expected.`
 })
 
 const W1 = [
