@@ -1,4 +1,4 @@
-# crypto-lab-ckks-lab
+# cryto-lab-ckks-lab
 
 ## 1. What It Is
 
@@ -17,15 +17,15 @@ CKKS Lab demonstrates CKKS (Cheon-Kim-Kim-Song, ASIACRYPT 2017) — the Fully Ho
 
 ## 3. Live Demo
 
-Link: https://systemslibrarian.github.io/crypto-lab-ckks-lab/
+Link: https://systemslibrarian.github.io/cryto-lab-ckks-lab/
 
 Six exhibits: what CKKS is and why approximation is the right choice for ML, CKKS encode/encrypt/add with approximation error shown honestly, homomorphic multiplication and rescaling with modulus level tracking, encrypted neural network inference end-to-end (2-layer network on encrypted inputs), precision and error accumulation across multiple operations, and the complete FHE trilogy comparison (TFHE + BGV/BFV + CKKS) with decision tree and library guide.
 
 ## 4. How to Run Locally
 
 ```bash
-git clone https://github.com/systemslibrarian/crypto-lab-ckks-lab
-cd crypto-lab-ckks-lab
+git clone https://github.com/systemslibrarian/cryto-lab-ckks-lab
+cd cryto-lab-ckks-lab
 npm install
 npm run dev
 ```
