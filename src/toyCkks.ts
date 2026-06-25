@@ -202,9 +202,4 @@ export class ToyCkksEngine {
   scientific(v: number): string {
     return v.toExponential(3)
   }
-
-  preciseDigitsApprox(ct: CkksCiphertext): number {
-    const bits = Math.max(2, 10 - ct.noiseBitsLost)
-    return Math.max(1, Math.floor(bits * Math.LOG10E * Math.log(2)))
-  }
 }

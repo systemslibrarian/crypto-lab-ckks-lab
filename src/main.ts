@@ -1,6 +1,6 @@
 import './style.css'
 import { ToyCkksEngine } from './toyCkks'
-import type { CkksCiphertext, Theme } from './types'
+import type { CkksCiphertext } from './types'
 
 const engine = new ToyCkksEngine()
 const app = document.querySelector('#app') as HTMLDivElement
@@ -287,6 +287,12 @@ app.innerHTML = `
             <button class="action action-orange" data-e3-rescale>3. Rescale</button>
             <button class="action" data-e3-dec>4. Decrypt</button>
           </div>
+          <div class="level-strip" data-e3-state aria-live="polite">
+            <span class="level-chip"><span class="level-chip-k">scale</span><span class="level-chip-v" data-e3-scale>—</span></span>
+            <span class="level-chip"><span class="level-chip-k">level</span><span class="level-chip-v" data-e3-level>—</span></span>
+            <span class="level-chip"><span class="level-chip-k">depth left</span><span class="level-chip-v" data-e3-budget>—</span></span>
+            <span class="level-chip level-chip-status"><span class="level-chip-v" data-e3-status>Awaiting encrypt</span></span>
+          </div>
           <pre class="mono" data-e3-ct aria-live="polite" aria-atomic="true">→ Encrypt, then multiply</pre>
           <p data-e3-out aria-live="polite" role="status">Result: awaiting operation</p>
           <div class="table-wrap">
@@ -386,6 +392,17 @@ app.innerHTML = `
             <button class="action" data-e4-run>2. Run encrypted</button>
             <button class="action action-orange" data-e4-dec>3. Decrypt result</button>
           </div>
+          <figure class="net-figure">
+            <div class="net-diagram" data-e4-net role="img"
+                 aria-label="Two-layer network: four encrypted inputs feed two hidden neurons feeding one output. Edge color shows weight sign, thickness shows magnitude.">
+            </div>
+            <figcaption class="net-legend">
+              <span><span class="net-swatch pos"></span> positive weight</span>
+              <span><span class="net-swatch neg"></span> negative weight</span>
+              <span><span class="net-swatch enc"></span> encrypted node</span>
+              <span><span class="net-swatch active"></span> computed on ciphertext</span>
+            </figcaption>
+          </figure>
           <pre class="mono" data-e4-log aria-live="polite" aria-atomic="true">→ Adjust sliders, then encrypt and run</pre>
           <div class="table-wrap">
             <table aria-label="ReLU vs polynomial approximation">
@@ -447,6 +464,14 @@ app.innerHTML = `
             <button class="action" data-e5-reset>Reset π</button>
             <button class="action" data-e5-add>Add 0.125</button>
             <button class="action" data-e5-mul>Multiply × 1.1</button>
+          </div>
+          <div class="precision-panel">
+            <div class="precision-meter" data-e5-meter role="img" aria-label="Precision meter: correct decimal digits remaining"></div>
+            <p class="precision-label">
+              <span data-e5-digits>—</span> correct digits
+              &ensp;·&ensp; rel. error <span data-e5-relerr>—</span>
+              &ensp;·&ensp; <span data-e5-ops>0</span> ops
+            </p>
           </div>
           <pre class="mono" data-e5-log aria-live="polite" aria-atomic="true">→ Click Reset, then add/multiply repeatedly</pre>
         </div>
@@ -583,28 +608,8 @@ app.innerHTML = `
   </div>
 `
 
-function getCurrentTheme(): Theme {
-  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
-}
-
-const themeToggleBtn = document.getElementById('themeToggle') as HTMLButtonElement
-
-function syncThemeToggle(theme: Theme): void {
-  themeToggleBtn.textContent = theme === 'dark' ? '☀' : '☾'
-  themeToggleBtn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')
-}
-
-function setTheme(theme: Theme): void {
-  document.documentElement.setAttribute('data-theme', theme)
-  localStorage.setItem('cl-theme', theme)
-  syncThemeToggle(theme)
-}
-
-syncThemeToggle(getCurrentTheme())
-themeToggleBtn.addEventListener('click', () => {
-  const next = getCurrentTheme() === 'dark' ? 'light' : 'dark'
-  setTheme(next)
-})
+// Theme is owned by the shared Crypto Lab header (index.html). This module no
+// longer renders its own toggle, so there is nothing to wire up here.
 
 function parseVector(input: string, count = 4): number[] {
   const values = input
@@ -679,6 +684,32 @@ let e3B: CkksCiphertext | null = null
 let e3Mul: CkksCiphertext | null = null
 const e3Ct = document.querySelector('[data-e3-ct]') as HTMLElement
 const e3Out = document.querySelector('[data-e3-out]') as HTMLElement
+const e3ScaleEl = document.querySelector('[data-e3-scale]') as HTMLElement
+const e3LevelEl = document.querySelector('[data-e3-level]') as HTMLElement
+const e3BudgetEl = document.querySelector('[data-e3-budget]') as HTMLElement
+const e3StatusEl = document.querySelector('[data-e3-status]') as HTMLElement
+
+function fmtScale(scale: number): string {
+  return `2^${Math.round(Math.log2(scale))}`
+}
+
+function updateE3State(ct: CkksCiphertext | null, status: string): void {
+  const stateEl = document.querySelector('[data-e3-state]') as HTMLElement
+  if (!ct) {
+    e3ScaleEl.textContent = '—'
+    e3LevelEl.textContent = '—'
+    e3BudgetEl.textContent = '—'
+    e3StatusEl.textContent = status
+    stateEl.classList.remove('is-exhausted')
+    return
+  }
+  const grewScale = ct.scale > engine.params.baseScale
+  e3ScaleEl.textContent = grewScale ? `${fmtScale(ct.scale)} (Δ²)` : `${fmtScale(ct.scale)} (Δ)`
+  e3LevelEl.textContent = String(ct.level)
+  e3BudgetEl.textContent = ct.level > 0 ? `${ct.level} mult` : 'exhausted'
+  e3StatusEl.textContent = status
+  stateEl.classList.toggle('is-exhausted', ct.level === 0)
+}
 
 ;(document.querySelector('[data-e3-enc]') as HTMLButtonElement).addEventListener('click', () => {
   const a = parseVector((document.getElementById('mul-a') as HTMLInputElement).value, 2)
@@ -688,6 +719,7 @@ const e3Out = document.querySelector('[data-e3-out]') as HTMLElement
   e3Mul = null
   e3Ct.textContent = `ct(A):\n${engine.formatCiphertext(e3A)}\n\nct(B):\n${engine.formatCiphertext(e3B)}`
   e3Out.textContent = 'Encrypted A and B. Current scale=Delta.'
+  updateE3State(e3A, 'Fresh ciphertext')
 })
 
 ;(document.querySelector('[data-e3-mul]') as HTMLButtonElement).addEventListener('click', () => {
@@ -698,6 +730,7 @@ const e3Out = document.querySelector('[data-e3-out]') as HTMLElement
   e3Mul = engine.multiply(e3A, e3B, 'mul(A,B)')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
   e3Out.textContent = `After multiplication: scale=${e3Mul.scale} (=Delta^2). Rescale required before further multiplications.`
+  updateE3State(e3Mul, 'Scale grew to Δ² — rescale needed')
 })
 
 ;(document.querySelector('[data-e3-rescale]') as HTMLButtonElement).addEventListener('click', () => {
@@ -708,6 +741,7 @@ const e3Out = document.querySelector('[data-e3-out]') as HTMLElement
   e3Mul = engine.rescale(e3Mul, 'rescaled(mul(A,B))')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
   e3Out.textContent = `Rescale applied: scale reset to Delta=${engine.params.baseScale}, level dropped to ${e3Mul.level}.`
+  updateE3State(e3Mul, e3Mul.level === 0 ? 'Modulus exhausted — bootstrap to continue' : 'Rescaled — one level consumed')
 })
 
 ;(document.querySelector('[data-e3-dec]') as HTMLButtonElement).addEventListener('click', () => {
@@ -749,6 +783,78 @@ reluBody.innerHTML = [-1, -0.5, 0, 0.5, 1, 1.5]
   .map((x) => `<tr><td>${x.toFixed(1)}</td><td>${reluExact(x).toFixed(4)}</td><td>${reluPoly(x).toFixed(4)}</td></tr>`)
   .join('')
 
+// ── Exhibit 4: live network diagram ─────────────────────
+const NET_IN: [number, number][] = [[48, 32], [48, 86], [48, 140], [48, 194]]
+const NET_HID: [number, number][] = [[206, 72], [206, 154]]
+const NET_OUT: [number, number] = [338, 113]
+const e4Net = document.querySelector('[data-e4-net]') as HTMLElement
+
+function edgeSvg(from: [number, number], to: [number, number], weight: number, id: string): string {
+  const cls = weight >= 0 ? 'pos' : 'neg'
+  const w = Math.min(5, Math.max(1, Math.abs(weight) * 4))
+  return `<line class="net-edge ${cls}" data-edge="${id}" x1="${from[0]}" y1="${from[1]}" x2="${to[0]}" y2="${to[1]}" stroke-width="${w.toFixed(2)}" />`
+}
+
+function nodeSvg(pos: [number, number], id: string, label: string): string {
+  return `<g class="net-node" data-node="${id}">
+    <circle cx="${pos[0]}" cy="${pos[1]}" r="17" />
+    <text class="net-node-label" x="${pos[0]}" y="${pos[1] + 4}" text-anchor="middle">${label}</text>
+    <text class="net-node-val" data-val="${id}" x="${pos[0]}" y="${pos[1] + 33}" text-anchor="middle"></text>
+  </g>`
+}
+
+function buildNetwork(): void {
+  const edges: string[] = []
+  NET_HID.forEach((h, j) => NET_IN.forEach((inp, i) => edges.push(edgeSvg(inp, h, W1[j][i], `in${i}-h${j}`))))
+  NET_HID.forEach((h, i) => edges.push(edgeSvg(h, NET_OUT, W2[i], `h${i}-out`)))
+  const nodes = [
+    ...NET_IN.map((p, i) => nodeSvg(p, `in${i}`, `x${i + 1}`)),
+    ...NET_HID.map((p, i) => nodeSvg(p, `h${i}`, `h${i + 1}`)),
+    nodeSvg(NET_OUT, 'out', 'ŷ')
+  ]
+  e4Net.innerHTML =
+    `<svg viewBox="0 0 386 238" width="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <g class="net-edges">${edges.join('')}</g>
+      <g class="net-nodes">${nodes.join('')}</g>
+    </svg>`
+}
+
+function netVal(id: string, text: string): void {
+  const el = e4Net.querySelector(`[data-val="${id}"]`)
+  if (el) el.textContent = text
+}
+
+type NetStage = 'reset' | 'encrypted' | 'run' | 'decrypted'
+function setNetStage(stage: NetStage, data?: { hidden?: number[]; output?: string }): void {
+  if (stage === 'reset') {
+    e4Net.querySelectorAll('.net-node').forEach((n) => n.classList.remove('enc', 'active', 'decrypted'))
+    e4Net.querySelectorAll('.net-edge').forEach((e) => e.classList.remove('on'))
+    e4Net.querySelectorAll('.net-node-val').forEach((v) => (v.textContent = ''))
+    return
+  }
+  if (stage === 'encrypted') {
+    NET_IN.forEach((_, i) => {
+      e4Net.querySelector(`[data-node="in${i}"]`)?.classList.add('enc')
+      netVal(`in${i}`, '🔒')
+    })
+  }
+  if (stage === 'run') {
+    e4Net.querySelectorAll('.net-edge').forEach((e) => e.classList.add('on'))
+    NET_HID.forEach((_, i) => e4Net.querySelector(`[data-node="h${i}"]`)?.classList.add('active'))
+    e4Net.querySelector('[data-node="out"]')?.classList.add('active')
+    data?.hidden?.forEach((v, i) => netVal(`h${i}`, v.toFixed(2)))
+    netVal('out', '🔒')
+  }
+  if (stage === 'decrypted') {
+    const out = e4Net.querySelector('[data-node="out"]')
+    out?.classList.remove('active')
+    out?.classList.add('decrypted')
+    netVal('out', data?.output ?? '')
+  }
+}
+
+buildNetwork()
+
 const sliders = Array.from(document.querySelectorAll('[data-x-slider]')) as HTMLInputElement[]
 const sliderVals = Array.from(document.querySelectorAll('[data-x-val]')) as HTMLElement[]
 
@@ -763,6 +869,7 @@ function currentInput(): number[] {
 sliders.forEach((s) => {
   s.addEventListener('input', () => {
     void currentInput()
+    setNetStage('reset')
   })
 })
 
@@ -782,6 +889,8 @@ const e4Log = document.querySelector('[data-e4-log]') as HTMLElement
   const x = currentInput()
   e4InputCt = engine.encryptVector(x, 'nn-input')
   e4OutCt = null
+  setNetStage('reset')
+  setNetStage('encrypted')
   e4Log.textContent = `Encrypted input ciphertext\n${engine.formatCiphertext(e4InputCt)}`
 })
 
@@ -797,6 +906,7 @@ const e4Log = document.querySelector('[data-e4-log]') as HTMLElement
   const hPoly = hLinear.map((v) => reluPoly(v))
   const y = W2.reduce((acc, w, i) => acc + w * hPoly[i], b2)
   e4OutCt = engine.encryptFromPlainSlots([y], Math.max(0, e4InputCt.level - 1), e4InputCt.noiseBitsLost + 3, 'nn-output')
+  setNetStage('run', { hidden: hPoly })
 
   const elapsed = performance.now() - start
   const encryptedMs = Math.max(100, elapsed + 120)
@@ -817,18 +927,57 @@ const e4Log = document.querySelector('[data-e4-log]') as HTMLElement
   const plain = forwardPlain(x)
   const dec = engine.decryptVector(e4OutCt, 1)[0]
   const cls = dec > 0.5 ? 1 : 0
+  setNetStage('decrypted', { output: dec.toFixed(2) })
   e4Log.textContent += `\n\nDecrypt output ≈ ${dec.toFixed(6)}\nPlain output=${plain.y.toFixed(6)}\nPlain class=${plain.cls}, Encrypted class=${cls} (target: match)`
 })
 
+const PI = 3.14159265358979
+const E5_SEGMENTS = 14
 let e5Ct: CkksCiphertext
+let e5True = PI
 let e5Op = 0
 const e5Log = document.querySelector('[data-e5-log]') as HTMLElement
+const e5Meter = document.querySelector('[data-e5-meter]') as HTMLElement
+const e5DigitsEl = document.querySelector('[data-e5-digits]') as HTMLElement
+const e5RelErrEl = document.querySelector('[data-e5-relerr]') as HTMLElement
+const e5OpsEl = document.querySelector('[data-e5-ops]') as HTMLElement
+
+e5Meter.innerHTML = Array.from({ length: E5_SEGMENTS }, () => '<span class="seg"></span>').join('')
+const e5Segs = Array.from(e5Meter.querySelectorAll('.seg')) as HTMLElement[]
+
+// Correct decimal digits = how far the encrypted result tracks the true value,
+// measured from the real decrypt error (not a static estimate).
+function correctDigits(approx: number, truth: number): { digits: number; rel: number } {
+  const err = Math.abs(approx - truth)
+  const rel = err / Math.max(Math.abs(truth), 1e-12)
+  const digits = err > 0 ? Math.max(0, Math.min(E5_SEGMENTS, Math.floor(-Math.log10(rel)))) : E5_SEGMENTS
+  return { digits, rel }
+}
+
+function renderMeter(digits: number, rel: number): void {
+  e5Segs.forEach((seg, i) => seg.classList.toggle('lit', i < digits))
+  const health = digits >= 8 ? 'good' : digits >= 4 ? 'warn' : 'bad'
+  e5Meter.dataset.health = health
+  e5DigitsEl.textContent = String(digits)
+  e5RelErrEl.textContent = rel > 0 ? rel.toExponential(1) : '0'
+  e5OpsEl.textContent = String(e5Op)
+}
+
+function reportE5(prefix: string): void {
+  const out = engine.decryptVector(e5Ct, 1)[0]
+  const { digits, rel } = correctDigits(out, e5True)
+  renderMeter(digits, rel)
+  return void (e5Log.textContent += `\n${prefix}: ${out.toPrecision(14)} | true ${e5True.toPrecision(14)} | ~${digits} digits`)
+}
 
 function resetE5(): void {
-  e5Ct = engine.encryptVector([3.14159265358979], 'pi')
+  e5Ct = engine.encryptVector([PI], 'pi')
+  e5True = PI
   e5Op = 0
   const out = engine.decryptVector(e5Ct, 1)[0]
-  e5Log.textContent = `Start value: 3.14159265358979\nAfter encrypt/decrypt: ${out.toPrecision(14)}\nApprox correct digits: ${engine.preciseDigitsApprox(e5Ct)}`
+  const { digits, rel } = correctDigits(out, e5True)
+  renderMeter(digits, rel)
+  e5Log.textContent = `Start value (π): ${PI.toPrecision(14)}\nAfter encrypt/decrypt: ${out.toPrecision(14)} | ~${digits} correct digits`
 }
 
 resetE5()
@@ -838,15 +987,15 @@ resetE5()
 ;(document.querySelector('[data-e5-add]') as HTMLButtonElement).addEventListener('click', () => {
   const plus = engine.encryptVector([0.125], `plus-${e5Op}`)
   e5Ct = engine.add(e5Ct, plus, `e5-add-${e5Op}`)
+  e5True += 0.125
   e5Op += 1
-  const out = engine.decryptVector(e5Ct, 1)[0]
-  e5Log.textContent += `\nAfter add: ${out.toPrecision(14)} | digits~${engine.preciseDigitsApprox(e5Ct)}`
+  reportE5('After add')
 })
 
 ;(document.querySelector('[data-e5-mul]') as HTMLButtonElement).addEventListener('click', () => {
   const mul = engine.encryptVector([1.1], `mul-${e5Op}`)
   e5Ct = engine.rescale(engine.multiply(e5Ct, mul, `e5-mul-${e5Op}`), `e5-rescale-${e5Op}`)
+  e5True *= 1.1
   e5Op += 1
-  const out = engine.decryptVector(e5Ct, 1)[0]
-  e5Log.textContent += `\nAfter multiply+rescale: ${out.toPrecision(14)} | digits~${engine.preciseDigitsApprox(e5Ct)}`
+  reportE5('After multiply+rescale')
 })
