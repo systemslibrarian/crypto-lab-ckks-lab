@@ -249,13 +249,18 @@ html[data-theme='light'] th {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
-a {
+/* Scope link colors to page content so they don't bleed onto the shared
+   crypto-lab header (`.cl-topbar`), which is always dark and manages its own
+   link/button colors via --cl-ink. Without :not(.cl-topbar ...) the light-theme
+   `a { color: var(--orange) }` rule tinted the header's Menu/GitHub buttons dark
+   orange on the dark bar, failing AA contrast. */
+a:not(.cl-topbar a):not(.cl-skip-link) {
   color: var(--green);
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
-html[data-theme='light'] a {
+html[data-theme='light'] a:not(.cl-topbar a):not(.cl-skip-link) {
   color: var(--orange);
 }
 
