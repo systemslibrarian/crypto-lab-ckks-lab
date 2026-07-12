@@ -8,9 +8,21 @@ const app = document.querySelector('#app') as HTMLDivElement
 app.innerHTML = `
   <div class="app">
 
+    <!-- ── Hero ────────────────────────────────────────────── -->
+    <header class="cl-hero">
+      <div class="cl-hero-main">
+        <h1 class="cl-hero-title">CKKS</h1>
+        <p class="cl-hero-sub">FHE · approximate real-number arithmetic</p>
+        <p class="cl-hero-desc">Encrypt real-number vectors, then homomorphically add, multiply, rescale, and run a 2-layer neural network on the ciphertexts — decrypting only the final approximate result.</p>
+      </div>
+      <aside class="cl-hero-why" aria-label="Why it matters">
+        <span class="cl-hero-why-label">WHY IT MATTERS</span>
+        <p class="cl-hero-why-text">CKKS is the practical path to encrypted ML inference: a cloud can score private medical, financial, or genomic data without ever decrypting it. Its bounded approximation is what makes real-valued FHE fast enough to ship.</p>
+      </aside>
+    </header>
+
     <!-- ── Narrative Introduction ──────────────────────────── -->
     <section class="narrative-intro">
-      <h1>CKKS Lab: Encrypted Computation on Real Numbers</h1>
       <p class="narrative-scenario">
         You are a developer building a medical AI service. Your users send private health data for inference.
         You need to run the model — but you must never see the plaintext data. CKKS makes this possible.
