@@ -21,7 +21,17 @@ app.innerHTML = `
       </p>
 
       <div class="disclaimer">
-        ⚠ Educational demo — toy parameters (n=8). Not production-ready. Not externally audited.
+        ⚠ Educational demo — toy parameters (n=8, 4 slots, Δ=2<sup>10</sup>). Not production-ready. Not externally audited.
+      </div>
+
+      <div class="callout" role="note">
+        <strong>What's real here:</strong> this is a genuine (if tiny) CKKS implementation.
+        Ciphertexts are real RLWE polynomial pairs (c0, c1) in Z<sub>q</sub>[x]/(x<sup>n</sup>+1);
+        encoding uses the actual canonical embedding; homomorphic add, multiply (with
+        relinearization) and rescale operate on those polynomials; and every "decrypted result"
+        you see below is computed as <code>c0 + c1·s</code> and decoded — never read from a
+        plaintext shortcut. The only thing that is <em>not</em> real is security: n=8 is far too
+        small to be safe (128-bit security needs n ≥ 8192). Do not use this code for anything real.
       </div>
 
       <!-- Decision Panel -->
@@ -362,8 +372,9 @@ app.innerHTML = `
 
         <div class="exhibit-section">
           <div class="phase-label">B — Interactive demo</div>
-          <p class="note">Architecture: 4 inputs → 2 hidden neurons (polynomial ReLU) → 1 output.
-            ReLU replaced by degree-3 polynomial: p(x) = 0.5 + 0.197x − 0.0035x³.</p>
+          <p class="note">Architecture: 4 inputs → 2 hidden neurons (polynomial activation) → 1 output.
+            ReLU replaced by a degree-2 least-squares fit: p(x) = 0.0946 + 0.5x + 0.4642x².
+            A quadratic keeps the whole forward pass within the toy modulus chain's depth budget.</p>
           <div class="slider-grid">
             <div>
               <label for="x1">x1 (-1 to 1)</label>
@@ -416,8 +427,10 @@ app.innerHTML = `
           <div class="phase-label">C — What just happened</div>
           <p>
             The server multiplied encrypted inputs by plaintext weights (a cheaper operation than ciphertext × ciphertext),
-            added biases, applied a polynomial approximation of ReLU (because ReLU is not computable on ciphertexts directly),
-            then computed the output layer. The entire forward pass happened on encrypted data.
+            summed the encrypted products, rescaled, added biases, then evaluated the polynomial activation — whose x² term
+            is a genuine ciphertext × ciphertext multiplication followed by relinearization and rescaling. The output layer
+            repeated the weighted-sum step. Every intermediate value stayed a ciphertext; only the final result was decrypted,
+            client-side, via <code>c0 + c1·s</code>. At no point was any input decrypted on the server.
           </p>
           <p>
             <strong>Why polynomial ReLU?</strong> CKKS can only compute polynomials. Non-polynomial functions (ReLU, sigmoid)
@@ -764,23 +777,29 @@ const b1 = [0.1, -0.05]
 const W2 = [0.6, -0.7]
 const b2 = 0.2
 
+// Degree-2 polynomial activation p(x) = A0 + A1·x + A2·x² (least-squares fit to
+// ReLU on [-1, 1]). A quadratic is used deliberately: it needs only ONE
+// multiplicative level, so the whole 2-layer forward pass fits the toy modulus
+// chain and runs end-to-end on ciphertext without exhausting the depth budget.
+const ACT = { a0: 0.0946, a1: 0.5, a2: 0.4642 }
+
 function reluExact(x: number): number {
   return Math.max(0, x)
 }
 
-function reluPoly(x: number): number {
-  return 0.5 + 0.197 * x - 0.0035 * x ** 3
+function actPoly(x: number): number {
+  return ACT.a0 + ACT.a1 * x + ACT.a2 * x * x
 }
 
 function forwardPlain(x: number[]): { y: number; cls: number } {
-  const h = W1.map((row, j) => reluPoly(row.reduce((acc, w, i) => acc + w * x[i], b1[j])))
+  const h = W1.map((row, j) => actPoly(row.reduce((acc, w, i) => acc + w * x[i], b1[j])))
   const y = W2.reduce((acc, w, i) => acc + w * h[i], b2)
   return { y, cls: y > 0.5 ? 1 : 0 }
 }
 
 const reluBody = document.querySelector('[data-e4-relu-table]') as HTMLElement
 reluBody.innerHTML = [-1, -0.5, 0, 0.5, 1, 1.5]
-  .map((x) => `<tr><td>${x.toFixed(1)}</td><td>${reluExact(x).toFixed(4)}</td><td>${reluPoly(x).toFixed(4)}</td></tr>`)
+  .map((x) => `<tr><td>${x.toFixed(1)}</td><td>${reluExact(x).toFixed(4)}</td><td>${actPoly(x).toFixed(4)}</td></tr>`)
   .join('')
 
 // ── Exhibit 4: live network diagram ─────────────────────
@@ -873,49 +892,88 @@ sliders.forEach((s) => {
   })
 })
 
-let e4InputCt: CkksCiphertext | null = null
+// Each input feature is encrypted into its OWN ciphertext (value in slot 0).
+// This lets the weighted sum Σ W[j][i]·x_i be built purely by plaintext-weight ×
+// ciphertext multiplies followed by ciphertext additions — no rotation keys and
+// no decryption. The hidden pre-activations, the activation, and the output are
+// all held as ciphertexts and only the final result is decrypted.
+let e4InputCts: CkksCiphertext[] | null = null
 let e4OutCt: CkksCiphertext | null = null
 const e4Log = document.querySelector('[data-e4-log]') as HTMLElement
 
+// Homomorphic linear combination: Σ weights[i]·ct_i, rescaled back to Δ, + bias.
+function homLinComb(cts: CkksCiphertext[], weights: number[], bias: number, tag: string): CkksCiphertext {
+  let acc = engine.multiplyPlain(cts[0], [weights[0]], `${tag}-w0`) // scale → Δ²
+  for (let i = 1; i < weights.length; i += 1) {
+    const term = engine.multiplyPlain(cts[i], [weights[i]], `${tag}-w${i}`)
+    acc = engine.add(acc, term, `${tag}-acc`)
+  }
+  const rescaled = engine.rescale(acc, `${tag}-rescale`) // → Δ
+  return engine.addPlain(rescaled, [bias], `${tag}-bias`)
+}
+
+// Homomorphic activation A0 + A1·h + A2·h² on a single-slot ciphertext.
+function homActivation(h: CkksCiphertext, tag: string): CkksCiphertext {
+  const h2 = engine.rescale(engine.multiply(h, h, `${tag}-h2`), `${tag}-h2r`)      // Δ, level−1
+  const lin = engine.rescale(engine.multiplyPlain(h, [ACT.a1], `${tag}-l`), `${tag}-lr`)
+  const quad = engine.rescale(engine.multiplyPlain(h2, [ACT.a2], `${tag}-q`), `${tag}-qr`)
+  const linLow = engine.rescale(engine.multiplyPlain(lin, [1], `${tag}-id`), `${tag}-idr`) // match level
+  const sum = engine.add(linLow, quad, `${tag}-sum`)
+  return engine.addPlain(sum, [ACT.a0], `${tag}-a0`)
+}
+
 ;(document.querySelector('[data-e4-plain]') as HTMLButtonElement).addEventListener('click', () => {
   const x = currentInput()
-  const start = performance.now()
   const plain = forwardPlain(x)
-  const ms = performance.now() - start
-  e4Log.textContent = `Plaintext inference\ninput=${formatVec(x)}\noutput=${plain.y.toFixed(6)}\nclass=${plain.cls}\ntime=${ms.toFixed(3)} ms`
+  e4Log.textContent = `Plaintext inference (reference)\ninput=${formatVec(x)}\noutput=${plain.y.toFixed(6)}\nclass=${plain.cls}`
 })
 
 ;(document.querySelector('[data-e4-enc]') as HTMLButtonElement).addEventListener('click', () => {
   const x = currentInput()
-  e4InputCt = engine.encryptVector(x, 'nn-input')
+  e4InputCts = x.map((v, i) => engine.encryptVector([v], `nn-x${i}`))
   e4OutCt = null
   setNetStage('reset')
   setNetStage('encrypted')
-  e4Log.textContent = `Encrypted input ciphertext\n${engine.formatCiphertext(e4InputCt)}`
+  e4Log.textContent =
+    `Encrypted ${x.length} input features (one ciphertext each).\n` +
+    `First feature ciphertext:\n${engine.formatCiphertext(e4InputCts[0])}\n\n` +
+    `The plaintext values never leave the client from here on.`
 })
 
 ;(document.querySelector('[data-e4-run]') as HTMLButtonElement).addEventListener('click', () => {
-  if (!e4InputCt) {
+  if (!e4InputCts) {
     e4Log.textContent = 'Encrypt inputs first.'
     return
   }
-  const xApprox = engine.decryptVector(e4InputCt, 4)
   const start = performance.now()
 
-  const hLinear = W1.map((row, j) => row.reduce((acc, w, i) => acc + w * xApprox[i], b1[j]))
-  const hPoly = hLinear.map((v) => reluPoly(v))
-  const y = W2.reduce((acc, w, i) => acc + w * hPoly[i], b2)
-  e4OutCt = engine.encryptFromPlainSlots([y], Math.max(0, e4InputCt.level - 1), e4InputCt.noiseBitsLost + 3, 'nn-output')
-  setNetStage('run', { hidden: hPoly })
+  // Layer 1: two hidden neurons, each a homomorphic weighted sum + activation.
+  const hLinear = W1.map((row, j) => homLinComb(e4InputCts as CkksCiphertext[], row, b1[j], `h${j}`))
+  const hActivated = hLinear.map((h, j) => homActivation(h, `a${j}`))
 
-  const elapsed = performance.now() - start
-  const encryptedMs = Math.max(100, elapsed + 120)
-  e4Log.textContent = `Encrypted inference (toy browser CKKS simulation)\n` +
-    `Layer1: plaintext-weight × ciphertext + bias\n` +
-    `Activation: polynomial approx ReLU p(x)=0.5+0.197x-0.0035x^3\n` +
-    `Layer2: plaintext-weight × ciphertext + bias\n` +
-    `Toy timing: plaintext usually <1ms, encrypted path shown as ${encryptedMs.toFixed(2)} ms\n` +
-    `Production note: CKKS inference is significantly slower than plaintext and can take seconds to minutes for large models.`
+  // Layer 2: output neuron — weighted sum of the (still-encrypted) activations.
+  let out = engine.multiplyPlain(hActivated[0], [W2[0]], 'out-w0')
+  for (let i = 1; i < hActivated.length; i += 1) {
+    const term = engine.multiplyPlain(hActivated[i], [W2[i]], `out-w${i}`)
+    out = engine.add(out, term, 'out-acc')
+  }
+  e4OutCt = engine.addPlain(out, [b2], 'out-bias')
+  const elapsedMs = performance.now() - start
+
+  // The hidden values shown in the diagram are DECRYPTED copies for teaching —
+  // the computation itself ran on the ciphertexts above, not on these numbers.
+  const hiddenPeek = hActivated.map((h) => engine.decryptVector(h, 1)[0])
+  setNetStage('run', { hidden: hiddenPeek })
+
+  e4Log.textContent =
+    `Encrypted inference — every operation below ran on ciphertext:\n` +
+    `  Layer 1: plaintext-weight × ciphertext, summed, rescaled, + bias\n` +
+    `  Activation: A0 + A1·h + A2·h²  (one homomorphic multiply, then rescale)\n` +
+    `  Layer 2: plaintext-weight × ciphertext, summed, + bias\n` +
+    `Output ciphertext is at level ${(e4OutCt as CkksCiphertext).level}; only the\n` +
+    `secret-key holder can decrypt it.\n` +
+    `Toy in-browser wall-clock for this forward pass: ${elapsedMs.toFixed(2)} ms\n` +
+    `(Illustrative only — production CKKS on real models runs orders of magnitude slower.)`
 })
 
 ;(document.querySelector('[data-e4-dec]') as HTMLButtonElement).addEventListener('click', () => {
@@ -928,7 +986,10 @@ const e4Log = document.querySelector('[data-e4-log]') as HTMLElement
   const dec = engine.decryptVector(e4OutCt, 1)[0]
   const cls = dec > 0.5 ? 1 : 0
   setNetStage('decrypted', { output: dec.toFixed(2) })
-  e4Log.textContent += `\n\nDecrypt output ≈ ${dec.toFixed(6)}\nPlain output=${plain.y.toFixed(6)}\nPlain class=${plain.cls}, Encrypted class=${cls} (target: match)`
+  e4Log.textContent +=
+    `\n\nDecrypted output ≈ ${dec.toFixed(6)} (from the ciphertext, via c0 + c1·s)\n` +
+    `Plaintext reference = ${plain.y.toFixed(6)}\n` +
+    `Encrypted class=${cls}, plaintext class=${plain.cls} — they should match.`
 })
 
 const PI = 3.14159265358979

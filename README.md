@@ -16,6 +16,25 @@ CKKS Lab demonstrates CKKS (Cheon-Kim-Kim-Song, ASIACRYPT 2017) — the Fully Ho
 - ❌ Real-time inference on large models — CKKS is significantly slower than plaintext computation (seconds to minutes for production models)
 - Do NOT use this implementation in production — it is a teaching demo built to make the mechanics visible, not a hardened or audited FHE library.
 
+## Is the crypto real?
+
+Yes — this is a genuine (toy-parameter) CKKS engine, not a plaintext mock:
+
+- Ciphertexts are real RLWE polynomial pairs `(c0, c1)` in `Z_q[x]/(x^n + 1)`, held as exact `BigInt` coefficients.
+- Encoding/decoding uses the actual CKKS canonical embedding (the special complex FFT over the primitive 2n-th roots of `x^n + 1`), which is a ring homomorphism — so homomorphic multiplication is true slot-wise multiplication.
+- `add`, `multiply` (tensor product + gadget-decomposition relinearization) and `rescale` all operate on the ciphertext polynomials.
+- **Decryption computes `c0 + c1·s (mod q)` and decodes the recovered polynomial.** No displayed "decrypted result" is ever read from a plaintext cache. Corrupting a ciphertext coefficient changes the decrypted output, and decrypting under the wrong secret key yields garbage — both are pinned by unit tests in `test/toyCkks.test.ts`.
+- The encrypted neural-network exhibit runs the entire forward pass (weighted sums, a quadratic polynomial activation whose `x²` term is a real ciphertext multiply, and the output layer) on ciphertexts; only the final result is decrypted, client-side.
+
+The one thing that is deliberately **not** real is security: `n = 8` is far too small to hide anything (128-bit security needs `n ≥ 8192`). Toy timings shown in the UI are illustrative, not measured benchmarks.
+
+## Tests
+
+```bash
+npm test        # vitest crypto unit tests (round-trip, add/multiply/rescale, tamper-detection, wrong-key, encrypted NN)
+npm run test:a11y   # Playwright + axe WCAG gate (dark + light)
+```
+
 ## Live Demo
 
 **[systemslibrarian.github.io/crypto-lab-ckks-lab](https://systemslibrarian.github.io/crypto-lab-ckks-lab/)**
