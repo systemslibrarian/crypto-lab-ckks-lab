@@ -47,6 +47,8 @@ app.innerHTML = `
       </div>
 
       <!-- Decision Panel -->
+      <details class="go-deeper">
+        <summary>Should I use CKKS? (best-for / avoid / tradeoffs)</summary>
       <div class="decision-panel">
         <div class="decision-use">
           <h3>✔ Best for</h3>
@@ -81,6 +83,7 @@ app.innerHTML = `
           <p><strong>Prerequisites:</strong> symmetric encryption, public-key concepts, basic abstract algebra.</p>
         </div>
       </div>
+      </details>
 
       <!-- CKKS Data Flow Visualization -->
       <div class="flow-visual" aria-label="CKKS data flow">
@@ -105,15 +108,29 @@ app.innerHTML = `
       <!-- EXHIBIT 1 — Conceptual Foundation                  -->
       <!-- ═══════════════════════════════════════════════════ -->
       <section class="exhibit" id="exhibit-1" aria-labelledby="e1-heading" tabindex="-1">
-        <h2 id="e1-heading">Exhibit 1: What CKKS Is and Why Approximation Is the Right Choice</h2>
+        <h2 id="e1-heading">Exhibit 1: Encrypt a Number, Compute on It, Get It Back</h2>
 
-        <div class="phase-label">A — What you're about to learn</div>
-        <p class="exhibit-intro">
-          You will understand why CKKS deliberately chooses <em>approximate</em> results — and why that's the correct
-          engineering decision for encrypted machine learning, not a compromise.
+        <p class="exhibit-hook">
+          <strong>CKKS lets a server do math on your numbers without ever seeing them.</strong>
+          Encrypt a real number, and it comes back <em>almost</em> exactly right — the tiny gap is the whole point of the scheme.
         </p>
 
-        <div class="phase-label">B — The core concept</div>
+        <div class="firsttry">
+          <div class="firsttry-row" role="group" aria-label="First encryption">
+            <label for="e1-value">Your number</label>
+            <input id="e1-value" type="text" inputmode="decimal" value="3.14" aria-describedby="e1-hint" />
+            <button class="action" data-e1-run>Encrypt → decrypt</button>
+          </div>
+          <p id="e1-hint" class="note">One click encrypts it under a real RLWE key, then decrypts it back. Nothing else runs yet.</p>
+          <div class="firsttry-out" data-e1-out aria-live="polite" role="status">
+            → Click to see <code>3.14</code> make the encrypt / decrypt round-trip.
+          </div>
+        </div>
+
+        <details class="go-deeper">
+          <summary>Go deeper: why approximate, the FHE family, and the RLWE foundation</summary>
+
+        <div class="phase-label">The core concept</div>
         <p>
           <span class="tooltip-term" tabindex="0" data-tip="Cheon-Kim-Kim-Song scheme, published at ASIACRYPT 2017. Encrypts real/complex vectors and supports approximate homomorphic arithmetic.">CKKS</span>
           encrypts vectors of real/complex values and supports homomorphic
@@ -152,7 +169,7 @@ app.innerHTML = `
         </div>
 
         <div class="exhibit-section">
-          <div class="phase-label">C — Why it matters</div>
+          <div class="phase-label">Why it matters</div>
           <div class="callout" role="note">
             <strong>Why this matters:</strong> CKKS is the practical FHE path for encrypted ML inference.
             CryptoNets (Microsoft, 2016), Microsoft SEAL, OpenFHE, and HEAAN all rely on this design.
@@ -161,7 +178,7 @@ app.innerHTML = `
         </div>
 
         <div class="exhibit-section">
-          <div class="phase-label">D — When you'd actually use this</div>
+          <div class="phase-label">When you'd actually use this</div>
           <ul>
             <li><strong>Cloud ML inference</strong> — A hospital sends encrypted patient features; the cloud runs a diagnostic model without seeing the data.</li>
             <li><strong>Encrypted analytics</strong> — Compute mean/variance on encrypted salary data across organizations.</li>
@@ -170,7 +187,7 @@ app.innerHTML = `
         </div>
 
         <div class="exhibit-section">
-          <div class="phase-label phase-label-orange">E — Tradeoffs &amp; warnings</div>
+          <div class="phase-label phase-label-orange">Tradeoffs &amp; warnings</div>
           <ul>
             <li>⚠ Approximation error accumulates — deep computation chains lose precision.</li>
             <li>⚠ Not suitable for exact arithmetic (financial calculations, vote counting).</li>
@@ -179,7 +196,7 @@ app.innerHTML = `
         </div>
 
         <div class="exhibit-section">
-          <div class="phase-label">F — Explore the FHE family</div>
+          <div class="phase-label">Explore the FHE family</div>
           <p>
             For bit-level FHE (TFHE):
             <a href="https://systemslibrarian.github.io/crypto-lab-blind-oracle/" target="_blank" rel="noopener noreferrer">
@@ -192,6 +209,7 @@ app.innerHTML = `
             </a>
           </p>
         </div>
+        </details>
       </section>
 
       <!-- ═══════════════════════════════════════════════════ -->
@@ -212,7 +230,26 @@ app.innerHTML = `
         </p>
 
         <div class="exhibit-section">
-          <div class="phase-label">B — Interactive demo</div>
+          <div class="phase-label">B — Watch 4 numbers become one polynomial</div>
+          <p class="note">
+            Before encrypting, CKKS <strong>encodes</strong>: the
+            <span class="tooltip-term" tabindex="0" data-tip="The canonical embedding (a special complex FFT over the primitive 2n-th roots of x^n+1). It turns a length-n/2 vector into ONE integer polynomial of degree n whose evaluation at those roots reproduces the slots.">canonical embedding</span>
+            spreads your 4 slot values across all 8 integer coefficients of a single polynomial.
+            Type values, then encode &amp; encrypt to see the exact numbers flow.
+          </p>
+          <div class="row" role="group" aria-label="Encoding visualizer inputs">
+            <label for="e2-encvec" class="inline-label">4 real values</label>
+            <input id="e2-encvec" type="text" value="1.5, 2.7, 3.2, 0.8" style="max-width:16rem" />
+            <button class="action" data-e2-encode>Encode &amp; encrypt</button>
+          </div>
+          <div class="encflow" data-e2-encflow aria-live="polite">
+            <p class="note">→ Click “Encode &amp; encrypt” to watch the slots become polynomial coefficients.</p>
+          </div>
+          <p class="note encflow-caption" data-e2-encflow-caption></p>
+        </div>
+
+        <div class="exhibit-section">
+          <div class="phase-label">C — Now add two encrypted vectors</div>
           <p class="note">Toy CKKS: n=8, 4 slots per ciphertext, Δ=2<sup>10</sup>. Production uses n ≥ 8192 with 4096 slots.</p>
           <div class="grid-2">
             <div>
@@ -230,21 +267,48 @@ app.innerHTML = `
             <button class="action" data-e2-add>3. Add ciphertexts</button>
             <button class="action action-orange" data-e2-dec>4. Decrypt result</button>
           </div>
+
+          <div class="row" role="group" aria-label="Ciphertext view mode">
+            <span class="viewmode-label" id="e2-view-label">Ciphertext view:</span>
+            <button class="action ctview-btn is-active" data-e2-view="signal" aria-pressed="true">Signal + noise</button>
+            <button class="action ctview-btn" data-e2-view="hex" aria-pressed="false">Raw hex</button>
+          </div>
+          <p class="note" data-e2-view-hint>
+            <strong>Signal + noise:</strong> the balanced (centered) small-integer coefficients of each ciphertext.
+            The first line is the ideal encoded signal; the second is what actually decrypts (signal + the tiny RLWE error).
+          </p>
+
           <div class="grid-2">
             <div>
               <h3>ct(A)</h3>
-              <pre class="mono" data-e2-cta aria-live="polite" aria-atomic="true">→ Click "Encrypt A" to begin</pre>
+              <pre class="mono" data-e2-cta tabindex="0" role="region" aria-label="Ciphertext A coefficients" aria-live="polite" aria-atomic="true">→ Click "Encrypt A" to begin</pre>
             </div>
             <div>
               <h3>ct(B)</h3>
-              <pre class="mono" data-e2-ctb aria-live="polite" aria-atomic="true">→ Click "Encrypt B"</pre>
+              <pre class="mono" data-e2-ctb tabindex="0" role="region" aria-label="Ciphertext B coefficients" aria-live="polite" aria-atomic="true">→ Click "Encrypt B"</pre>
             </div>
           </div>
           <h3>ct(A + B)</h3>
-          <pre class="mono" data-e2-sum aria-live="polite" aria-atomic="true">→ Add both ciphertexts, then decrypt</pre>
+          <pre class="mono" data-e2-sum tabindex="0" role="region" aria-label="Sum ciphertext coefficients" aria-live="polite" aria-atomic="true">→ Add both ciphertexts, then decrypt</pre>
+
+          <div class="tamper" role="group" aria-label="Tamper with a coefficient">
+            <span class="tamper-title">Prove it's real — corrupt one coefficient of ct(A+B):</span>
+            <div class="row">
+              <label for="e2-tamper-idx" class="inline-label">coefficient #</label>
+              <select id="e2-tamper-idx" data-e2-tamper-idx>
+                <option>0</option><option>1</option><option>2</option><option>3</option>
+                <option>4</option><option>5</option><option>6</option><option>7</option>
+              </select>
+              <button class="action action-orange" data-e2-tamper>+2048 &amp; decrypt</button>
+            </div>
+            <p class="note" data-e2-tamper-out aria-live="polite">Add both ciphertexts first, then nudge a coefficient and watch a slot drift.</p>
+          </div>
+
           <p data-e2-out aria-live="polite" role="status">Expected: [2.0, 4.0, 6.0, 4.9]</p>
-          <div class="callout" role="note" data-e2-scale>
-            Scale visualizer: 1.5 × 1024 = 1536, 0.5 × 1024 = 512, sum=2048, decode=2048/1024=2.0.
+
+          <h3>All 4 slots ride in one ciphertext (SIMD)</h3>
+          <div class="simd-bracket" data-e2-simd aria-label="Scale visualizer for all four slots">
+            <div class="note">→ Decrypt the sum to fill all four SIMD lanes at once.</div>
           </div>
         </div>
 
@@ -315,7 +379,33 @@ app.innerHTML = `
             <span class="level-chip"><span class="level-chip-k">depth left</span><span class="level-chip-v" data-e3-budget>—</span></span>
             <span class="level-chip level-chip-status"><span class="level-chip-v" data-e3-status>Awaiting encrypt</span></span>
           </div>
-          <pre class="mono" data-e3-ct aria-live="polite" aria-atomic="true">→ Encrypt, then multiply</pre>
+
+          <!-- Depth-budget pipeline: modulus chain + scale bar + ciphertext degree -->
+          <div class="pipeline" aria-label="CKKS depth pipeline">
+            <div class="pipe-block">
+              <div class="pipe-label">Modulus chain — each rescale drops one prime</div>
+              <div class="modchain" data-e3-modchain role="img" aria-label="Modulus chain levels"></div>
+              <p class="note pipe-hint">
+                Fresh ciphertexts start at the top level (highest prime). <strong>depth left = level number = multiplications
+                still available</strong>, because every multiply must be followed by a rescale that drops one prime.
+              </p>
+            </div>
+            <div class="pipe-block">
+              <div class="pipe-label">Scale — multiply doubles it to Δ², rescale halves it back to Δ</div>
+              <div class="scalebar" data-e3-scalebar role="img" aria-label="Current ciphertext scale">
+                <div class="scalebar-fill" data-e3-scalefill></div>
+                <span class="scalebar-txt" data-e3-scaletxt>Δ</span>
+              </div>
+            </div>
+            <div class="pipe-block">
+              <div class="pipe-label">Ciphertext degree — multiply makes (c0,c1,c2); relinearize collapses it back to (c0,c1)</div>
+              <div class="degree-view" data-e3-degree role="img" aria-label="Ciphertext degree stage">
+                <span class="deg-part">c0</span><span class="deg-part">c1</span><span class="deg-part deg-c2" data-e3-c2>c2</span>
+              </div>
+            </div>
+          </div>
+
+          <pre class="mono" data-e3-ct tabindex="0" role="region" aria-label="Exhibit 3 ciphertext" aria-live="polite" aria-atomic="true">→ Encrypt, then multiply</pre>
           <p data-e3-out aria-live="polite" role="status">Result: awaiting operation</p>
           <div class="table-wrap">
             <table aria-label="CKKS multiplication depth table">
@@ -426,10 +516,27 @@ app.innerHTML = `
               <span><span class="net-swatch active"></span> computed on ciphertext</span>
             </figcaption>
           </figure>
-          <pre class="mono" data-e4-log aria-live="polite" aria-atomic="true">→ Adjust sliders, then encrypt and run</pre>
+          <pre class="mono" data-e4-log tabindex="0" role="region" aria-label="Exhibit 4 inference log" aria-live="polite" aria-atomic="true">→ Adjust sliders, then encrypt and run</pre>
+
+          <h3>Where the polynomial diverges from true ReLU</h3>
+          <figure class="relu-figure">
+            <div class="relu-chart" data-e4-relu-chart role="img"
+                 aria-label="Overlay of true ReLU (a hinge at zero) and the degree-2 polynomial approximation. The two curves match near zero and diverge toward the ends of the range; the shaded band is the approximation error.">
+            </div>
+            <figcaption class="relu-legend">
+              <span><span class="relu-swatch relu"></span> true ReLU</span>
+              <span><span class="relu-swatch poly"></span> degree-2 poly p(x)</span>
+              <span><span class="relu-swatch gap"></span> approximation error</span>
+            </figcaption>
+          </figure>
+          <p class="note" data-e4-relu-caption>
+            The quadratic hugs ReLU near x=0 but drifts at the edges — that gap is exactly the plaintext-vs-encrypted
+            output difference you see on decrypt. Run the encrypted pass to mark each hidden pre-activation on the curve.
+          </p>
+
           <div class="table-wrap">
             <table aria-label="ReLU vs polynomial approximation">
-              <thead><tr><th scope="col">x</th><th scope="col">ReLU(x)</th><th scope="col">Poly approx</th></tr></thead>
+              <thead><tr><th scope="col">x</th><th scope="col">ReLU(x)</th><th scope="col">Poly approx</th><th scope="col">Error</th></tr></thead>
               <tbody data-e4-relu-table></tbody>
             </table>
           </div>
@@ -498,7 +605,7 @@ app.innerHTML = `
               &ensp;·&ensp; <span data-e5-ops>0</span> ops
             </p>
           </div>
-          <pre class="mono" data-e5-log aria-live="polite" aria-atomic="true">→ Click Reset, then add/multiply repeatedly</pre>
+          <pre class="mono" data-e5-log tabindex="0" role="region" aria-label="Exhibit 5 precision log" aria-live="polite" aria-atomic="true">→ Click Reset, then add/multiply repeatedly</pre>
         </div>
 
         <div class="exhibit-section">
@@ -652,26 +759,125 @@ function formatVec(values: number[]): string {
   return `[${values.map((v) => v.toFixed(6)).join(', ')}]`
 }
 
+// ── Exhibit 1: first-try encrypt→decrypt round-trip ─────
+const e1Out = document.querySelector('[data-e1-out]') as HTMLElement
+;(document.querySelector('[data-e1-run]') as HTMLButtonElement).addEventListener('click', () => {
+  const raw = (document.getElementById('e1-value') as HTMLInputElement).value
+  const v = Number(raw.trim())
+  if (!Number.isFinite(v)) {
+    e1Out.textContent = 'Enter a single real number (e.g. 3.14).'
+    return
+  }
+  const ct = engine.encryptVector([v], 'e1')
+  const back = engine.decryptVector(ct, 1)[0]
+  const err = Math.abs(back - v)
+  e1Out.innerHTML =
+    `<span class="e1-flow"><span class="e1-chip">${v}</span> <span class="e1-arrow">→ encrypt →</span> ` +
+    `<span class="e1-chip enc">🔒 RLWE ciphertext</span> <span class="e1-arrow">→ decrypt →</span> ` +
+    `<span class="e1-chip out">${back.toFixed(4)}</span></span>` +
+    `<span class="e1-note">Off by ${engine.scientific(err)} — that gap is CKKS's deliberate approximation, ` +
+    `not a bug. At production scale (Δ=2<sup>40</sup>) it shrinks to ~10<sup>-12</sup>.</span>`
+})
+
+// ── Exhibit 2: encoding visualizer (slots → coeffs → +noise) ─
+const e2EncFlow = document.querySelector('[data-e2-encflow]') as HTMLElement
+const e2EncCap = document.querySelector('[data-e2-encflow-caption]') as HTMLElement
+
+function coeffBoxes(vals: bigint[], cls: string, deltas?: bigint[]): string {
+  return vals
+    .map((v, i) => {
+      const changed = deltas && deltas[i] !== 0n ? ' changed' : ''
+      return `<span class="cbox ${cls}${changed}">${v.toString()}</span>`
+    })
+    .join('')
+}
+
+;(document.querySelector('[data-e2-encode]') as HTMLButtonElement).addEventListener('click', () => {
+  const vals = parseVector((document.getElementById('e2-encvec') as HTMLInputElement).value, 4)
+  const t = engine.encodeTrace(vals)
+  const slotBoxes = t.slots.map((v, i) => `<span class="cbox slot">s${i}=${v}</span>`).join('')
+  e2EncFlow.innerHTML =
+    `<div class="encrow"><span class="encrow-label">4 input slots (your reals)</span>` +
+    `<div class="cboxes">${slotBoxes}</div></div>` +
+    `<div class="encarrow" aria-hidden="true">↓ canonical embedding × Δ=${engine.params.baseScale}</div>` +
+    `<div class="encrow"><span class="encrow-label">8 encoded coefficients (integers)</span>` +
+    `<div class="cboxes">${coeffBoxes(t.coeffs, 'coeff')}</div></div>` +
+    `<div class="encarrow" aria-hidden="true">↓ encrypt: add RLWE error e</div>` +
+    `<div class="encrow"><span class="encrow-label">same coefficients, after encryption (signal + noise)</span>` +
+    `<div class="cboxes">${coeffBoxes(t.noisy, 'noisy', t.delta)}</div></div>` +
+    `<div class="encrow"><span class="encrow-label">per-coefficient noise added (highlighted above)</span>` +
+    `<div class="cboxes">${coeffBoxes(t.delta, 'delta')}</div></div>`
+  const maxNoise = t.delta.reduce((m, d) => (d > m ? d : -d > m ? -d : m), 0n)
+  e2EncCap.innerHTML =
+    `Every slot value is spread across all 8 coefficients — that is the canonical embedding. ` +
+    `Encryption then perturbs each coefficient by at most ±${maxNoise.toString()} ` +
+    `(tiny next to Δ=${engine.params.baseScale}), which is why decode still recovers the reals.`
+})
+
 let e2A: CkksCiphertext | null = null
 let e2B: CkksCiphertext | null = null
 let e2Sum: CkksCiphertext | null = null
+let e2View: 'signal' | 'hex' = 'signal'
 const e2Cta = document.querySelector('[data-e2-cta]') as HTMLElement
 const e2Ctb = document.querySelector('[data-e2-ctb]') as HTMLElement
 const e2SumEl = document.querySelector('[data-e2-sum]') as HTMLElement
 const e2Out = document.querySelector('[data-e2-out]') as HTMLElement
-const e2Scale = document.querySelector('[data-e2-scale]') as HTMLElement
+const e2Simd = document.querySelector('[data-e2-simd]') as HTMLElement
+const e2TamperOut = document.querySelector('[data-e2-tamper-out]') as HTMLElement
+const e2ViewHint = document.querySelector('[data-e2-view-hint]') as HTMLElement
+
+// Render one ciphertext in the currently-selected view. "signal" shows the
+// centered small-integer coefficients of c0/c1 (legible), "hex" the raw dump.
+function renderCt(ct: CkksCiphertext, ideal?: number[]): string {
+  if (e2View === 'hex') return engine.formatCiphertext(ct)
+  const { c0, c1 } = engine.centeredCoeffs(ct)
+  let head = `label=${ct.label}, level=${ct.level}, scale=${ct.scale}`
+  if (ideal) {
+    const signal = engine.encode(ideal)
+    head += `\nsignal c0 (ideal):  ${signal.map((v) => v.toString()).join(' ')}`
+  }
+  return (
+    `${head}\n` +
+    `c0 (signal+noise):  ${c0.map((v) => v.toString()).join(' ')}\n` +
+    `c1 (mask a):        ${c1.map((v) => v.toString()).join(' ')}`
+  )
+}
+
+function refreshE2Views(): void {
+  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
+  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  if (e2A) e2Cta.textContent = renderCt(e2A, a)
+  if (e2B) e2Ctb.textContent = renderCt(e2B, b)
+  if (e2Sum) e2SumEl.textContent = renderCt(e2Sum, a.map((v, i) => v + b[i]))
+}
+
+;(Array.from(document.querySelectorAll('[data-e2-view]')) as HTMLButtonElement[]).forEach((btn) => {
+  btn.addEventListener('click', () => {
+    e2View = btn.dataset.e2View === 'hex' ? 'hex' : 'signal'
+    document.querySelectorAll('[data-e2-view]').forEach((b) => {
+      const active = (b as HTMLElement).dataset.e2View === e2View
+      b.classList.toggle('is-active', active)
+      b.setAttribute('aria-pressed', String(active))
+    })
+    e2ViewHint.innerHTML =
+      e2View === 'signal'
+        ? '<strong>Signal + noise:</strong> the balanced (centered) small-integer coefficients of each ciphertext. The first line is the ideal encoded signal; the second is what actually decrypts (signal + the tiny RLWE error).'
+        : '<strong>Raw hex:</strong> the ciphertext polynomials as stored — small integers modulo q, shown in hex. Unreadable by design; switch back to Signal + noise to see the structure.'
+    refreshE2Views()
+  })
+})
 
 ;(document.querySelector('[data-e2-enc-a]') as HTMLButtonElement).addEventListener('click', () => {
   const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
   e2A = engine.encryptVector(a, 'A')
-  e2Cta.textContent = engine.formatCiphertext(e2A)
+  e2Cta.textContent = renderCt(e2A, a)
   e2Out.textContent = `A encoded slots: ${formatVec(a)} using Delta=${engine.params.baseScale}`
 })
 
 ;(document.querySelector('[data-e2-enc-b]') as HTMLButtonElement).addEventListener('click', () => {
   const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
   e2B = engine.encryptVector(b, 'B')
-  e2Ctb.textContent = engine.formatCiphertext(e2B)
+  e2Ctb.textContent = renderCt(e2B, b)
 })
 
 ;(document.querySelector('[data-e2-add]') as HTMLButtonElement).addEventListener('click', () => {
@@ -679,10 +885,32 @@ const e2Scale = document.querySelector('[data-e2-scale]') as HTMLElement
     e2Out.textContent = 'Encrypt A and B first.'
     return
   }
+  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
+  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
   e2Sum = engine.add(e2A, e2B, 'A+B')
-  e2SumEl.textContent = engine.formatCiphertext(e2Sum)
+  e2SumEl.textContent = renderCt(e2Sum, a.map((v, i) => v + b[i]))
   e2Out.textContent = 'Ciphertext addition done for all 4 slots in one SIMD operation.'
 })
+
+function renderSimd(a: number[], b: number[], actual: number[]): void {
+  const s = engine.params.baseScale
+  const rows = a
+    .map((av, i) => {
+      const bv = b[i]
+      const encA = Math.round(av * s)
+      const encB = Math.round(bv * s)
+      return (
+        `<div class="simd-lane"><span class="lane-tag">slot ${i}</span>` +
+        `<span class="lane-calc">${av} × ${s} = ${encA} &nbsp;+&nbsp; ${bv} × ${s} = ${encB}` +
+        ` &nbsp;→&nbsp; ${encA + encB}/${s} = <strong>${((encA + encB) / s).toFixed(3)}</strong></span>` +
+        `<span class="lane-dec">decrypted ≈ ${actual[i].toFixed(4)}</span></div>`
+      )
+    })
+    .join('')
+  e2Simd.innerHTML =
+    `<div class="simd-inner">${rows}</div>` +
+    `<div class="simd-note">One ciphertext, one add — all 4 lanes moved together (SIMD / batching).</div>`
+}
 
 ;(document.querySelector('[data-e2-dec]') as HTMLButtonElement).addEventListener('click', () => {
   if (!e2Sum) {
@@ -695,13 +923,28 @@ const e2Scale = document.querySelector('[data-e2-scale]') as HTMLElement
   const actual = engine.decryptVector(e2Sum, 4)
   const err = engine.slotError(expected, actual)
   e2Out.textContent = `Expected ${formatVec(expected)}\nActual ${formatVec(actual)}\nPer-slot error ${err.map((v) => engine.scientific(v)).join(', ')}\nApproximation error is small and bounded by scale/noise settings.`
+  renderSimd(a, b, actual)
+})
 
-  const s = engine.params.baseScale
-  const a0 = a[0]
-  const b0 = b[0]
-  const encA = Math.round(a0 * s)
-  const encB = Math.round(b0 * s)
-  e2Scale.textContent = `Scale visualizer: ${a0} × ${s} = ${encA}, ${b0} × ${s} = ${encB}, sum=${encA + encB}, decode=${encA + encB}/${s} = ${(encA + encB) / s}.`
+;(document.querySelector('[data-e2-tamper]') as HTMLButtonElement).addEventListener('click', () => {
+  if (!e2Sum) {
+    e2TamperOut.textContent = 'Add both ciphertexts first, then tamper.'
+    return
+  }
+  const idx = Number((document.getElementById('e2-tamper-idx') as HTMLSelectElement).value)
+  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
+  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  const before = engine.decryptVector(e2Sum, 4)
+  const tampered = engine.tamperC0(e2Sum, idx, BigInt(2 * engine.params.baseScale))
+  const after = engine.decryptVector(tampered, 4)
+  const drift = after.map((v, i) => v - before[i])
+  const worst = drift.reduce((m, d, i) => (Math.abs(d) > Math.abs(drift[m]) ? i : m), 0)
+  e2SumEl.textContent = renderCt(tampered, a.map((v, i) => v + b[i]))
+  e2TamperOut.innerHTML =
+    `Nudged coefficient #${idx} of c0 by +${2 * engine.params.baseScale}. ` +
+    `Because decryption is <code>c0 + c1·s</code>, the recovered slots shifted: ` +
+    `slot ${worst} moved from ${before[worst].toFixed(4)} to <strong>${after[worst].toFixed(4)}</strong>. ` +
+    `A plaintext shortcut could never do this — the crypto is real.`
 })
 
 let e3A: CkksCiphertext | null = null
@@ -718,6 +961,41 @@ function fmtScale(scale: number): string {
   return `2^${Math.round(Math.log2(scale))}`
 }
 
+// ── Exhibit 3 pipeline (modulus chain + scale bar + degree) ──
+const e3ModchainEl = document.querySelector('[data-e3-modchain]') as HTMLElement
+const e3ScaleFill = document.querySelector('[data-e3-scalefill]') as HTMLElement
+const e3ScaleTxt = document.querySelector('[data-e3-scaletxt]') as HTMLElement
+const e3DegreeEl = document.querySelector('[data-e3-degree]') as HTMLElement
+const e3C2El = document.querySelector('[data-e3-c2]') as HTMLElement
+// One chip per modulus in the chain, top prime = top level. Highlights the
+// current level; dims (drops) every level below it.
+function renderModchain(level: number | null): void {
+  const chain = engine.params.modChain
+  e3ModchainEl.innerHTML = chain
+    .map((q, idx) => {
+      const lvl = chain.length - 1 - idx // modChain[0] is top level
+      let cls = 'mod-chip'
+      if (level === null) cls += ''
+      else if (lvl === level) cls += ' current'
+      else if (lvl > level) cls += ' dropped'
+      const bits = Math.round(Math.log2(q))
+      return `<span class="${cls}"><span class="mod-lvl">L${lvl}</span><span class="mod-q">2^${bits}</span></span>`
+    })
+    .join('<span class="mod-link" aria-hidden="true">–</span>')
+}
+
+// degree: 1 => (c0,c1); 2 => (c0,c1,c2). scaleState: 'd' | 'd2'.
+function renderPipeline(scaleState: 'd' | 'd2', degree: 1 | 2): void {
+  e3ScaleFill.style.width = scaleState === 'd2' ? '100%' : '50%'
+  e3ScaleTxt.textContent = scaleState === 'd2' ? 'Δ² (double)' : 'Δ'
+  e3ScaleFill.classList.toggle('is-hot', scaleState === 'd2')
+  e3C2El.classList.toggle('show', degree === 2)
+  e3DegreeEl.classList.toggle('is-deg2', degree === 2)
+}
+
+renderModchain(null)
+renderPipeline('d', 1)
+
 function updateE3State(ct: CkksCiphertext | null, status: string): void {
   const stateEl = document.querySelector('[data-e3-state]') as HTMLElement
   if (!ct) {
@@ -726,6 +1004,8 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
     e3BudgetEl.textContent = '—'
     e3StatusEl.textContent = status
     stateEl.classList.remove('is-exhausted')
+    renderModchain(null)
+    renderPipeline('d', 1)
     return
   }
   const grewScale = ct.scale > engine.params.baseScale
@@ -734,6 +1014,7 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   e3BudgetEl.textContent = ct.level > 0 ? `${ct.level} mult` : 'exhausted'
   e3StatusEl.textContent = status
   stateEl.classList.toggle('is-exhausted', ct.level === 0)
+  renderModchain(ct.level)
 }
 
 ;(document.querySelector('[data-e3-enc]') as HTMLButtonElement).addEventListener('click', () => {
@@ -743,7 +1024,8 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   e3B = engine.encryptVector(b, 'mul-B')
   e3Mul = null
   e3Ct.textContent = `ct(A):\n${engine.formatCiphertext(e3A)}\n\nct(B):\n${engine.formatCiphertext(e3B)}`
-  e3Out.textContent = 'Encrypted A and B. Current scale=Delta.'
+  e3Out.textContent = `Encrypted A and B at level ${e3A.level} (top of the chain, ${e3A.level} multiplications available). Current scale=Delta.`
+  renderPipeline('d', 1)
   updateE3State(e3A, 'Fresh ciphertext')
 })
 
@@ -754,8 +1036,19 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   }
   e3Mul = engine.multiply(e3A, e3B, 'mul(A,B)')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
-  e3Out.textContent = `After multiplication: scale=${e3Mul.scale} (=Delta^2). Rescale required before further multiplications.`
-  updateE3State(e3Mul, 'Scale grew to Δ² — rescale needed')
+  e3Out.textContent =
+    `Stage 1 — MULTIPLY: the tensor product makes a degree-2 ciphertext (c0,c1,c2) and the scale doubles to Δ².\n` +
+    `Stage 2 — RELINEARIZE: the evaluation key folds c2 back in, returning a normal (c0,c1) pair (shown below).\n` +
+    `Next: rescale to halve the scale back to Δ and drop one modulus level.`
+  // Show the transient degree-2 (c2 appears) then collapse to degree-1 to make
+  // the relinearization step visible. The engine has already relinearized; this
+  // animation narrates the two internal stages of a single multiply().
+  renderPipeline('d2', 2)
+  updateE3State(e3Mul, 'Multiplied → Δ², degree 2 (c0,c1,c2)')
+  window.setTimeout(() => {
+    renderPipeline('d2', 1)
+    updateE3State(e3Mul, 'Relinearized → back to (c0,c1); rescale needed')
+  }, 900)
 })
 
 ;(document.querySelector('[data-e3-rescale]') as HTMLButtonElement).addEventListener('click', () => {
@@ -763,9 +1056,13 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
     e3Out.textContent = 'Run multiply first.'
     return
   }
+  const prevLevel = e3Mul.level
   e3Mul = engine.rescale(e3Mul, 'rescaled(mul(A,B))')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
-  e3Out.textContent = `Rescale applied: scale reset to Delta=${engine.params.baseScale}, level dropped to ${e3Mul.level}.`
+  e3Out.textContent =
+    `Stage 3 — RESCALE: divide by Δ (scale Δ² → Δ) and drop prime L${prevLevel} from the chain.\n` +
+    `Level ${prevLevel} → ${e3Mul.level}. Depth left is now ${e3Mul.level} multiplication${e3Mul.level === 1 ? '' : 's'}.`
+  renderPipeline('d', 1)
   updateE3State(e3Mul, e3Mul.level === 0 ? 'Modulus exhausted — bootstrap to continue' : 'Rescaled — one level consumed')
 })
 
@@ -811,8 +1108,75 @@ function forwardPlain(x: number[]): { y: number; cls: number } {
 
 const reluBody = document.querySelector('[data-e4-relu-table]') as HTMLElement
 reluBody.innerHTML = [-1, -0.5, 0, 0.5, 1, 1.5]
-  .map((x) => `<tr><td>${x.toFixed(1)}</td><td>${reluExact(x).toFixed(4)}</td><td>${actPoly(x).toFixed(4)}</td></tr>`)
+  .map((x) => {
+    const gap = actPoly(x) - reluExact(x)
+    return `<tr><td>${x.toFixed(1)}</td><td>${reluExact(x).toFixed(4)}</td><td>${actPoly(x).toFixed(4)}</td><td>${gap >= 0 ? '+' : ''}${gap.toFixed(4)}</td></tr>`
+  })
   .join('')
+
+// ── Exhibit 4: overlaid ReLU vs polynomial curve ────────
+const RELU_X0 = -1.2
+const RELU_X1 = 1.6
+const RELU_W = 360
+const RELU_H = 170
+const RELU_PAD = 24
+function reluChartX(x: number): number {
+  return RELU_PAD + ((x - RELU_X0) / (RELU_X1 - RELU_X0)) * (RELU_W - 2 * RELU_PAD)
+}
+// y-range covers both curves comfortably on [-0.2, ~1.7].
+const RELU_Y0 = -0.25
+const RELU_Y1 = 1.75
+function reluChartY(y: number): number {
+  return RELU_H - RELU_PAD - ((y - RELU_Y0) / (RELU_Y1 - RELU_Y0)) * (RELU_H - 2 * RELU_PAD)
+}
+const e4ReluChart = document.querySelector('[data-e4-relu-chart]') as HTMLElement
+
+function reluPath(fn: (x: number) => number): string {
+  const pts: string[] = []
+  for (let i = 0; i <= 60; i += 1) {
+    const x = RELU_X0 + ((RELU_X1 - RELU_X0) * i) / 60
+    pts.push(`${reluChartX(x).toFixed(1)},${reluChartY(fn(x)).toFixed(1)}`)
+  }
+  return pts.join(' ')
+}
+
+function gapPolygon(): string {
+  const top: string[] = []
+  const bottom: string[] = []
+  for (let i = 0; i <= 60; i += 1) {
+    const x = RELU_X0 + ((RELU_X1 - RELU_X0) * i) / 60
+    top.push(`${reluChartX(x).toFixed(1)},${reluChartY(actPoly(x)).toFixed(1)}`)
+    bottom.push(`${reluChartX(x).toFixed(1)},${reluChartY(reluExact(x)).toFixed(1)}`)
+  }
+  return top.concat(bottom.reverse()).join(' ')
+}
+
+function buildReluChart(marks: number[] = []): void {
+  const x0 = reluChartX(0)
+  const axisY = reluChartY(0)
+  const markSvg = marks
+    .map((x) => {
+      const cx = reluChartX(x)
+      const yR = reluChartY(reluExact(x))
+      const yP = reluChartY(actPoly(x))
+      return (
+        `<line class="relu-mark-line" x1="${cx.toFixed(1)}" y1="${yR.toFixed(1)}" x2="${cx.toFixed(1)}" y2="${yP.toFixed(1)}" />` +
+        `<circle class="relu-mark relu-mark-poly" cx="${cx.toFixed(1)}" cy="${yP.toFixed(1)}" r="3.5" />` +
+        `<circle class="relu-mark relu-mark-relu" cx="${cx.toFixed(1)}" cy="${yR.toFixed(1)}" r="3.5" />`
+      )
+    })
+    .join('')
+  e4ReluChart.innerHTML =
+    `<svg viewBox="0 0 ${RELU_W} ${RELU_H}" width="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <line class="relu-axis" x1="${RELU_PAD}" y1="${axisY.toFixed(1)}" x2="${(RELU_W - RELU_PAD).toFixed(1)}" y2="${axisY.toFixed(1)}" />
+      <line class="relu-axis" x1="${x0.toFixed(1)}" y1="${RELU_PAD}" x2="${x0.toFixed(1)}" y2="${(RELU_H - RELU_PAD).toFixed(1)}" />
+      <polygon class="relu-gap" points="${gapPolygon()}" />
+      <polyline class="relu-line relu-line-relu" points="${reluPath(reluExact)}" />
+      <polyline class="relu-line relu-line-poly" points="${reluPath(actPoly)}" />
+      ${markSvg}
+    </svg>`
+}
+buildReluChart()
 
 // ── Exhibit 4: live network diagram ─────────────────────
 const NET_IN: [number, number][] = [[48, 32], [48, 86], [48, 140], [48, 194]]
@@ -901,6 +1265,7 @@ sliders.forEach((s) => {
   s.addEventListener('input', () => {
     void currentInput()
     setNetStage('reset')
+    buildReluChart() // clear per-input marks; they no longer reflect the sliders
   })
 })
 
@@ -976,6 +1341,17 @@ function homActivation(h: CkksCiphertext, tag: string): CkksCiphertext {
   // the computation itself ran on the ciphertexts above, not on these numbers.
   const hiddenPeek = hActivated.map((h) => engine.decryptVector(h, 1)[0])
   setNetStage('run', { hidden: hiddenPeek })
+
+  // Mark each hidden neuron's pre-activation on the ReLU-vs-poly curve so the
+  // learner sees exactly where THIS input lands and how big the ReLU↔poly gap is.
+  const xIn = currentInput()
+  const preActs = W1.map((row, j) => row.reduce((acc, w, i) => acc + w * xIn[i], b1[j]))
+  buildReluChart(preActs)
+  const capEl = document.querySelector('[data-e4-relu-caption]') as HTMLElement
+  const gapText = preActs
+    .map((z, j) => `h${j + 1} at x=${z.toFixed(2)} (gap ${(actPoly(z) - reluExact(z)).toFixed(3)})`)
+    .join('; ')
+  capEl.textContent = `Marked on the curve: ${gapText}. The larger the gap, the more the encrypted output can differ from a true-ReLU network.`
 
   e4Log.textContent =
     `Encrypted inference — every operation below ran on ciphertext:\n` +

@@ -452,6 +452,58 @@ export class ToyCkksEngine {
     return `label=${ct.label}\nq=2^${Math.round(Math.log2(Number(q)))}, level=${ct.level}, scale=${ct.scale}\nc0: ${c0}\nc1: ${c1}`
   }
 
+  /**
+   * Encoding trace for the UI. Returns, for a real input vector:
+   *   - slots: the input real values (padded to slotCount)
+   *   - coeffs: the encode() output — the integer polynomial coefficients that
+   *     the canonical embedding produces (small integers, NOT hex)
+   *   - noisy: the SAME polynomial after one real RLWE encryption, i.e. the
+   *     centered coefficients of (c0 + c1·s) mod q — signal + RLWE error
+   *   - delta: noisy[i] − coeffs[i], the per-coefficient error the encryption added
+   * These are the actual numbers flowing through the scheme, so a learner can
+   * watch a real value become the polynomial and then pick up noise.
+   */
+  encodeTrace(values: number[]): {
+    slots: number[]
+    coeffs: bigint[]
+    noisy: bigint[]
+    delta: bigint[]
+  } {
+    const slots = this.idealSlots(values)
+    const coeffs = this.encode(values)
+    const ct = this.encryptVector(values, 'trace')
+    const noisy = this.decryptPoly(ct)
+    const delta = noisy.map((v, i) => v - coeffs[i])
+    return { slots, coeffs, noisy, delta }
+  }
+
+  /**
+   * Centered small-integer coefficients of a ciphertext's c0 / c1 polynomials,
+   * i.e. the balanced representatives in (−q/2, q/2]. These are what the raw hex
+   * dump encodes; showing them centered makes the "signal + tiny noise" reading
+   * legible instead of a wall of hex.
+   */
+  centeredCoeffs(ct: CkksCiphertext): { c0: bigint[]; c1: bigint[] } {
+    const q = this.q(ct.level)
+    return {
+      c0: ct.c0.map((v) => centered(v, q)),
+      c1: ct.c1.map((v) => centered(v, q))
+    }
+  }
+
+  /**
+   * Return a copy of the ciphertext with a single coefficient of c0 perturbed by
+   * `delta` (a raw ring element). Used by the "tamper" interaction: because
+   * decryption is c0 + c1·s, poking one coefficient genuinely shifts the
+   * recovered plaintext — proving nothing is read from the ideal slot cache.
+   */
+  tamperC0(ct: CkksCiphertext, index: number, delta: bigint): CkksCiphertext {
+    const q = this.q(ct.level)
+    const c0 = ct.c0.slice()
+    c0[index] = bmod(c0[index] + delta, q)
+    return { ...ct, c0, label: `${ct.label} (tampered)` }
+  }
+
   slotError(expected: number[], actual: number[]): number[] {
     return expected.map((v, i) => actual[i] - v)
   }

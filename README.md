@@ -4,6 +4,8 @@
 
 CKKS Lab demonstrates CKKS (Cheon-Kim-Kim-Song, ASIACRYPT 2017) — the Fully Homomorphic Encryption scheme for approximate arithmetic on real numbers. Unlike BGV/BFV which produce exact integer results, CKKS deliberately introduces small approximation errors to enable efficient floating-point arithmetic on encrypted data. A CKKS ciphertext encodes a vector of real numbers (n/2 slots for polynomial degree n) and supports vectorized addition and multiplication directly on ciphertexts. CKKS is the FHE scheme behind encrypted machine learning inference — the ability to evaluate a neural network on encrypted input without the server ever seeing the plaintext data.
 
+The demo is built for a newcomer to follow start-to-finish: it opens with a one-click "encrypt 3.14, get 3.1401 back" round-trip, then makes the scheme's hardest idea — the canonical embedding — watchable by showing 4 real slot values flow into 8 integer polynomial coefficients and then pick up the tiny RLWE noise term. Ciphertexts render as legible centered "signal + noise" coefficients (with a raw-hex toggle), and you can corrupt a single coefficient and watch a decrypted slot drift, proving the encryption is real by interaction rather than by prose. Advanced material (the FHE decision panel, the RLWE foundation, scheme comparisons) is tucked behind "go deeper" reveals so it never blocks the first hands-on success.
+
 ## When to Use It
 
 - ✅ Encrypted neural network inference on private user data
@@ -39,7 +41,14 @@ npm run test:a11y   # Playwright + axe WCAG gate (dark + light)
 
 **[systemslibrarian.github.io/crypto-lab-ckks-lab](https://systemslibrarian.github.io/crypto-lab-ckks-lab/)**
 
-Six exhibits: what CKKS is and why approximation is the right choice for ML, CKKS encode/encrypt/add with approximation error shown honestly, homomorphic multiplication and rescaling with modulus level tracking, encrypted neural network inference end-to-end (2-layer network on encrypted inputs), precision and error accumulation across multiple operations, and the complete FHE trilogy comparison (TFHE + BGV/BFV + CKKS) with decision tree and library guide.
+Six exhibits:
+
+1. **Encrypt a number, compute on it, get it back** — a one-click encrypt→decrypt round-trip that shows the deliberate approximation gap up front; the "why approximate," FHE-family, and RLWE detail sit in collapsible "go deeper" panels.
+2. **Encode, encrypt, add, decrypt** — an encoding visualizer watches 4 real slots become 8 integer polynomial coefficients (the canonical embedding) and then gain the RLWE noise term; ciphertexts show as centered "signal + noise" coefficients (raw-hex toggle available), a click can corrupt a coefficient and drift a decrypted slot, and all four SIMD lanes update together under one "one ciphertext" bracket.
+3. **Homomorphic multiplication and rescaling** — a staged multiply → relinearize → rescale pipeline: the scale bar doubles to Δ² then halves back, the `(c0,c1,c2)` degree-2 ciphertext collapses back to `(c0,c1)`, and the modulus chain drops a prime with the current level highlighted (depth-left = level number = multiplications remaining).
+4. **Encrypted neural network inference** — a 2-layer network runs end-to-end on encrypted inputs, with the ReLU-vs-polynomial-activation gap plotted as an overlaid curve and each hidden pre-activation marked so the approximation cost is tied to the encrypted-vs-plaintext output difference.
+5. **Precision, scale, and error accumulation** — a segmented precision meter whose lit segments are computed from the *actual* decrypt error, degrading live as you add and multiply.
+6. **The FHE trilogy** — the full TFHE + BGV/BFV + CKKS comparison with a decision tree and library guide.
 
 ## What Can Go Wrong
 

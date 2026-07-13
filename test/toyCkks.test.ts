@@ -81,6 +81,45 @@ describe('real RLWE encryption round-trip', () => {
   })
 })
 
+describe('encoding trace and coefficient views (Exhibit 2 visualizers)', () => {
+  it('encodeTrace exposes real slots, integer coeffs, and a small noise delta', () => {
+    const eng = new ToyCkksEngine()
+    const t = eng.encodeTrace([1.5, 2.7, 3.2, 0.8])
+    expect(t.slots).toEqual([1.5, 2.7, 3.2, 0.8])
+    expect(t.coeffs.length).toBe(eng.params.n)
+    expect(t.noisy.length).toBe(eng.params.n)
+    // Every coeff is an integer BigInt (encoding is real, not identity).
+    expect(t.coeffs.every((c) => typeof c === 'bigint')).toBe(true)
+    // The noise the encryption added is small relative to the scale (Δ=1024),
+    // and at least one coefficient actually moved (encryption is not a no-op).
+    const moved = t.delta.some((d) => d !== 0n)
+    expect(moved).toBe(true)
+    const maxDelta = t.delta.reduce((m, d) => (d > m ? d : -d > m ? -d : m), 0n)
+    expect(Number(maxDelta)).toBeLessThan(eng.params.baseScale)
+  })
+
+  it('centeredCoeffs returns balanced small integers, not raw [0,q) values', () => {
+    const eng = new ToyCkksEngine()
+    const ct = eng.encryptVector([1.5, 2.7, 3.2, 0.8], 'x')
+    const { c0 } = eng.centeredCoeffs(ct)
+    const q = eng.params.modChain[0]
+    // Balanced representatives live in (−q/2, q/2].
+    expect(c0.every((v) => Number(v) > -q / 2 && Number(v) <= q / 2)).toBe(true)
+  })
+
+  it('tamperC0 shifts the decrypted slot (decrypt truly uses the ciphertext)', () => {
+    const eng = new ToyCkksEngine()
+    const ct = eng.encryptVector([1.5, 2.7, 3.2, 0.8], 'x')
+    const before = eng.decryptVector(ct, 4)
+    const tampered = eng.tamperC0(ct, 0, BigInt(eng.params.baseScale) * 3n)
+    const after = eng.decryptVector(tampered, 4)
+    expect(after).not.toEqual(before)
+    // A shift on coefficient 0 alone must visibly move the recovered values.
+    const maxDrift = Math.max(...after.map((v, i) => Math.abs(v - before[i])))
+    expect(maxDrift).toBeGreaterThan(0.1)
+  })
+})
+
 describe('homomorphic addition', () => {
   it('Decrypt(Enc(a) + Enc(b)) ≈ a + b, decrypted from the summed ciphertext', () => {
     const eng = new ToyCkksEngine()

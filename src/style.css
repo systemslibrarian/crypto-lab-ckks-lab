@@ -922,3 +922,467 @@ html[data-theme='light'] .precision-meter .seg {
 @media (prefers-reduced-motion: reduce) {
   .net-edge.on { animation: none; }
 }
+
+/* ── Exhibit 1: hook + first-try round-trip ───────────── */
+.exhibit-hook {
+  font-size: clamp(0.95rem, 2.2vw, 1.08rem);
+  margin: 0.4rem 0 0.9rem;
+  max-width: 80ch;
+}
+
+.firsttry {
+  border: 1px solid var(--green-soft);
+  background-color: rgba(0, 0, 0, 0.12);
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+html[data-theme='light'] .firsttry {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.firsttry-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.inline-label {
+  display: inline;
+  margin: 0;
+}
+
+.firsttry-row input {
+  max-width: 10rem;
+  width: auto;
+}
+
+.firsttry-out {
+  margin-top: 0.7rem;
+  line-height: 1.7;
+}
+
+.e1-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.e1-chip {
+  border: 1px solid var(--green-soft);
+  padding: 0.2rem 0.55rem;
+  background-color: var(--panel);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.e1-chip.enc {
+  border-color: var(--orange-soft);
+  color: var(--orange);
+}
+
+.e1-chip.out {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.e1-arrow {
+  color: var(--muted);
+}
+
+.e1-note {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ── Collapsible "go deeper" blocks ───────────────────── */
+.go-deeper {
+  border: 1px solid var(--edge);
+  background-color: rgba(0, 0, 0, 0.08);
+  padding: 0 0.8rem;
+  margin: 1rem 0;
+}
+
+html[data-theme='light'] .go-deeper {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.go-deeper > summary {
+  cursor: pointer;
+  padding: 0.7rem 0;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(0.8rem, 1.9vw, 0.95rem);
+  color: var(--green);
+  font-weight: 700;
+}
+
+.go-deeper[open] > summary {
+  border-bottom: 1px solid var(--edge);
+  margin-bottom: 0.7rem;
+}
+
+.go-deeper > summary:hover {
+  color: var(--text);
+}
+
+.go-deeper .decision-panel { margin-top: 0.6rem; }
+
+/* ── Exhibit 2: encoding visualizer ───────────────────── */
+.encflow {
+  border: 1px solid var(--edge);
+  background-color: rgba(0, 0, 0, 0.12);
+  padding: 0.7rem;
+  margin: 0.7rem 0 0.3rem;
+}
+
+html[data-theme='light'] .encflow {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.encrow {
+  margin-bottom: 0.35rem;
+}
+
+.encrow-label {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.cboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.cbox {
+  border: 1px solid var(--edge);
+  padding: 0.18rem 0.45rem;
+  min-width: 2.4rem;
+  text-align: center;
+  font-size: 0.82rem;
+  background-color: var(--panel);
+  color: var(--text);
+}
+
+.cbox.slot { border-color: var(--green-soft); color: var(--green); }
+.cbox.coeff { color: var(--text); }
+.cbox.noisy { color: var(--text); }
+.cbox.noisy.changed,
+.cbox.delta {
+  border-color: var(--orange);
+  color: var(--orange);
+  font-weight: 700;
+}
+
+.encarrow {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.encflow-caption {
+  margin-top: 0.4rem;
+}
+
+/* ── Exhibit 2: ciphertext view toggle + tamper ───────── */
+.viewmode-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  align-self: center;
+}
+
+.ctview-btn {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.7rem;
+  min-height: 0;
+}
+
+.ctview-btn.is-active {
+  background-color: var(--green-soft);
+  color: var(--text);
+  border-color: var(--green);
+}
+
+.tamper {
+  border: 1px solid var(--orange-soft);
+  background-color: rgba(255, 123, 69, 0.05);
+  padding: 0.7rem;
+  margin: 0.8rem 0;
+}
+
+html[data-theme='light'] .tamper {
+  background-color: rgba(179, 74, 30, 0.05);
+}
+
+.tamper-title {
+  display: block;
+  font-weight: 700;
+  color: var(--orange);
+  margin-bottom: 0.4rem;
+}
+
+.tamper select {
+  padding: 0.4rem;
+  background-color: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--green-soft);
+}
+
+/* ── Exhibit 2: SIMD bracket ──────────────────────────── */
+.simd-bracket {
+  border-left: 3px solid var(--green);
+  padding: 0.5rem 0.5rem 0.5rem 0.8rem;
+  margin: 0.4rem 0;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+html[data-theme='light'] .simd-bracket {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.simd-lane {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed var(--edge);
+  font-size: 0.82rem;
+}
+
+.simd-lane:last-child { border-bottom: none; }
+
+.lane-tag {
+  color: var(--green);
+  font-weight: 700;
+  min-width: 3.6rem;
+}
+
+.lane-calc { color: var(--text); }
+.lane-dec { color: var(--muted); margin-left: auto; }
+
+.simd-note {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+/* ── Exhibit 3: depth pipeline ────────────────────────── */
+.pipeline {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0.6rem 0;
+}
+
+.pipe-block {
+  border: 1px solid var(--edge);
+  padding: 0.6rem;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+html[data-theme='light'] .pipe-block {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.pipe-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.45rem;
+}
+
+.pipe-hint { margin: 0.4rem 0 0; }
+
+.modchain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.mod-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  min-width: 3.2rem;
+  background-color: var(--panel);
+  transition: border-color 0.2s, opacity 0.3s, background-color 0.2s;
+}
+
+.mod-chip .mod-lvl {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.mod-chip .mod-q {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.mod-chip.current {
+  border-color: var(--green);
+  background-color: var(--green-soft);
+}
+
+.mod-chip.current .mod-q { color: var(--text); }
+
+.mod-chip.dropped {
+  opacity: 0.32;
+  border-style: dashed;
+}
+
+.mod-chip.dropped .mod-q { text-decoration: line-through; }
+
+.mod-link {
+  color: var(--muted);
+}
+
+.scalebar {
+  position: relative;
+  height: 1.6rem;
+  border: 1px solid var(--edge);
+  background-color: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+html[data-theme='light'] .scalebar {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.scalebar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 50%;
+  background-color: var(--green-soft);
+  transition: width 0.5s ease, background-color 0.3s;
+}
+
+.scalebar-fill.is-hot {
+  background-color: var(--orange-soft);
+}
+
+.scalebar-txt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.degree-view {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.deg-part {
+  border: 1px solid var(--green-soft);
+  padding: 0.25rem 0.7rem;
+  color: var(--green);
+  font-weight: 700;
+  background-color: var(--panel);
+}
+
+.deg-c2 {
+  border-color: var(--orange);
+  color: var(--orange);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transform-origin: left;
+  transition: opacity 0.35s, transform 0.35s;
+  pointer-events: none;
+  width: 0;
+  padding: 0.25rem 0;
+  overflow: hidden;
+}
+
+.deg-c2.show {
+  opacity: 1;
+  transform: scaleX(1);
+  width: auto;
+  padding: 0.25rem 0.7rem;
+}
+
+/* ── Exhibit 4: ReLU vs poly overlay chart ────────────── */
+.relu-figure { margin: 0.6rem 0; }
+
+.relu-chart {
+  border: 1px solid var(--edge);
+  background-color: rgba(0, 0, 0, 0.12);
+  padding: 0.4rem;
+  max-width: 420px;
+}
+
+html[data-theme='light'] .relu-chart {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.relu-axis {
+  stroke: var(--edge);
+  stroke-width: 1;
+}
+
+.relu-line {
+  fill: none;
+  stroke-width: 2.2;
+}
+
+.relu-line-relu { stroke: var(--wire); }
+.relu-line-poly { stroke: var(--green); }
+
+.relu-gap {
+  fill: var(--orange-soft);
+  opacity: 0.35;
+}
+
+.relu-mark-line { stroke: var(--orange); stroke-width: 1.5; }
+.relu-mark-poly { fill: var(--green); }
+.relu-mark-relu { fill: var(--wire); }
+
+.relu-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin-top: 0.45rem;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.relu-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.relu-swatch {
+  width: 16px;
+  height: 3px;
+  display: inline-block;
+}
+
+.relu-swatch.relu { background-color: var(--wire); }
+.relu-swatch.poly { background-color: var(--green); }
+.relu-swatch.gap {
+  height: 12px;
+  background-color: var(--orange-soft);
+  opacity: 0.6;
+}
+
+@media (min-width: 720px) {
+  .pipeline { grid-template-columns: 1fr; }
+}
