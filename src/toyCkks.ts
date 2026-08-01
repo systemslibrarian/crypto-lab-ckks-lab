@@ -32,6 +32,11 @@ const TOY_PARAMS: CkksParams = {
   // so a rescale is exact enough for the toy precision we advertise. Enough
   // levels are provided to evaluate a small degree-3 network end-to-end without
   // exhausting the budget mid-circuit.
+  //
+  // NOTE: these are powers of two, NOT primes. Production CKKS uses a chain of
+  // distinct NTT-friendly primes q_i ≡ 1 (mod 2n) so the modulus can be carried
+  // in RNS/CRT form; here readability wins, since nothing in this file relies on
+  // q being prime (all arithmetic is plain BigInt modular reduction).
   modChain: [2 ** 50, 2 ** 40, 2 ** 30, 2 ** 20]
 }
 
@@ -247,8 +252,8 @@ export class ToyCkksEngine {
   /**
    * Modulus for a given level. A fresh ciphertext sits at the top level
    * (modChain.length - 1) with the LARGEST modulus; each rescale drops the
-   * level and moves to a smaller modulus. modChain[0] is the largest prime, so
-   * level L maps to modChain[(len-1) - L].
+   * level and moves to a smaller modulus. modChain[0] is the largest modulus,
+   * so level L maps to modChain[(len-1) - L].
    */
   private q(level: number): bigint {
     const idx = this.params.modChain.length - 1 - level

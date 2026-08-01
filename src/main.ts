@@ -76,7 +76,7 @@ app.innerHTML = `
           <ul>
             <li>Approximation error is inherent and grows with each operation</li>
             <li>Multiplication depth is finite — deep networks require bootstrapping</li>
-            <li>Ciphertexts are megabytes in production (n ≥ 8192)</li>
+            <li>Ciphertexts are large: 2·n·log q bits, so ≈440 KB at n=8192 (log q ≤ 218) and ≈1.8 MB at n=16384 (log q ≤ 438)</li>
             <li>10×–10,000× slower than plaintext computation</li>
           </ul>
         </div>
@@ -174,9 +174,11 @@ app.innerHTML = `
         <div class="exhibit-section">
           <div class="phase-label">Why it matters</div>
           <div class="callout" role="note">
-            <strong>Why this matters:</strong> CKKS is the practical FHE path for encrypted ML inference.
-            CryptoNets (Microsoft, 2016), Microsoft SEAL, OpenFHE, and HEAAN all rely on this design.
-            If you are evaluating a neural network on encrypted user data, CKKS is your scheme.
+            <strong>Why this matters:</strong> CKKS is the practical FHE path for encrypted ML inference, and
+            Microsoft SEAL, OpenFHE, HEAAN and Lattigo all implement it. (CryptoNets, ICML 2016, is the ancestor of
+            this line of work but <em>not</em> a CKKS system — it predates the 2017 CKKS paper and ran on SEAL's
+            leveled exact-integer scheme, quantising its network to integers.)
+            If you are evaluating a neural network on encrypted real-valued user data, CKKS is your scheme.
           </div>
         </div>
 
@@ -277,8 +279,11 @@ app.innerHTML = `
             <button class="action ctview-btn" data-e2-view="hex" aria-pressed="false">Raw hex</button>
           </div>
           <p class="note" data-e2-view-hint>
-            <strong>Signal + noise:</strong> the balanced (centered) small-integer coefficients of each ciphertext.
-            The first line is the ideal encoded signal; the second is what actually decrypts (signal + the tiny RLWE error).
+            <strong>Signal + noise:</strong> the first line is the ideal encoded polynomial; the second is
+            <code>c0 + c1·s</code> — what decryption actually recovers (the same signal plus the RLWE error, ±1 at these
+            parameters). The <code>c0</code> and <code>c1</code> lines under it are the stored ciphertext halves: each is
+            masked and its coefficients are spread across the full range (−q/2, q/2], so on its own neither reveals
+            anything. That is the RLWE assumption — the signal only reappears when the secret key recombines them.
           </p>
 
           <div class="grid-2">
@@ -386,11 +391,15 @@ app.innerHTML = `
           <!-- Depth-budget pipeline: modulus chain + scale bar + ciphertext degree -->
           <div class="pipeline" aria-label="CKKS depth pipeline">
             <div class="pipe-block">
-              <div class="pipe-label">Modulus chain — each rescale drops one prime</div>
+              <div class="pipe-label">Modulus chain — each rescale drops one modulus</div>
               <div class="modchain" data-e3-modchain role="img" aria-label="Modulus chain levels"></div>
               <p class="note pipe-hint">
-                Fresh ciphertexts start at the top level (highest prime). <strong>depth left = level number = multiplications
-                still available</strong>, because every multiply must be followed by a rescale that drops one prime.
+                Fresh ciphertexts start at the top level (largest modulus). <strong>depth left = level number = multiplications
+                still available</strong>, because every multiply must be followed by a rescale that drops one modulus.
+                This toy chain is 2<sup>50</sup>–2<sup>40</sup>–2<sup>30</sup>–2<sup>20</sup>: powers of two, chosen so the
+                arithmetic is readable. Production CKKS instead uses a chain of distinct NTT-friendly <em>primes</em>
+                q<sub>i</sub> ≡ 1 (mod 2n), each ≈ Δ, so the modulus can be held in RNS form and rescaling is an exact
+                division by one prime.
               </p>
             </div>
             <div class="pipe-block">
@@ -433,7 +442,7 @@ app.innerHTML = `
             <span class="tooltip-term" tabindex="0" data-tip="Rescaling divides every coefficient by the scale Δ and drops one prime from the modulus chain. This is the CKKS mechanism for managing noise growth after multiplication.">Rescaling</span>
             divided by Δ and dropped one modulus level, restoring the scale to Δ. Each multiplication-rescale cycle
             consumes one level from the modulus chain. When levels are exhausted, expensive
-            <span class="tooltip-term" tabindex="0" data-tip="Bootstrapping refreshes a ciphertext's modulus levels so more operations can be performed. It is the most expensive operation in CKKS — often costing 100ms–1s.">bootstrapping</span>
+            <span class="tooltip-term" tabindex="0" data-tip="Bootstrapping refreshes a ciphertext's modulus levels so more operations can be performed. It is by far the most expensive operation in CKKS: tens of seconds per ciphertext (18 s for 32768 slots in Bossuat et al., EUROCRYPT 2021), though only ~0.5 ms amortized per slot.">bootstrapping</span>
             is required to continue.
           </p>
         </div>
@@ -564,8 +573,12 @@ app.innerHTML = `
           <div class="phase-label">D — Why it matters</div>
           <p>
             This is the core CKKS use case: <strong>privacy-preserving ML inference</strong>. The server never sees the plaintext inputs.
-            Real deployments include Microsoft CryptoNets, Apple's on-device ML, and genomic analysis pipelines.
-            Production systems use n=16384 or higher with carefully optimized polynomial approximations.
+            Be precise about what has actually shipped, though: encrypted inference is still mostly research and pilots
+            (CryptoNets and its successors, encrypted genomic analysis in the iDASH competitions). The largest
+            production homomorphic-encryption deployment to date — Apple's Live Caller ID Lookup — is
+            <em>not</em> CKKS and not inference: it is server-side private information retrieval built on
+            <strong>BFV</strong> (Apple's open-source swift-homomorphic-encryption implements BFV only).
+            Production CKKS systems use n=16384 or higher with carefully optimized polynomial approximations.
           </p>
         </div>
 
@@ -594,7 +607,8 @@ app.innerHTML = `
 
         <div class="exhibit-section">
           <div class="phase-label">B — Interactive demo</div>
-          <p class="note">Starting value: π (3.14159265358979). Track how correct digits decrease with each operation.</p>
+          <p class="note">Starting value: π (3.14159265358979). Track how correct digits decrease with each operation.
+            Adds are unlimited; multiplies are not — each one spends a level, and this toy chain only has three to spend.</p>
           <div class="row" role="group" aria-label="Exhibit 5 controls">
             <button class="action" data-e5-reset>Reset π</button>
             <button class="action" data-e5-add>Add 0.125</button>
@@ -617,7 +631,11 @@ app.innerHTML = `
             <strong>Encoding error</strong> is ~1/Δ (limited by how finely we quantize reals to integers).
             <strong>RLWE noise</strong> adds stochastic error during encryption.
             Each <strong>rescaling</strong> loses additional precision bits by dividing coefficients.
-            After several multiplications, the accumulated noise overwhelms the signal.
+            Two distinct things end a CKKS computation, and they fail differently: noise growing until it swamps the
+            signal (a gradual loss of correct digits, which is what the meter above tracks), and the modulus chain
+            running out (an abrupt cliff — no modulus is left to rescale into, so the next product wraps around q and
+            the answer is destroyed rather than degraded). At these toy parameters you reach the cliff first, after
+            three multiplies; the demo refuses the fourth rather than printing a number it knows is meaningless.
           </p>
         </div>
 
@@ -676,7 +694,10 @@ app.innerHTML = `
             • Not sure? Start with CKKS if your data is real-valued, BGV if integer, TFHE if bit-level.
           </div>
           <p>
-            Bootstrapping cost: TFHE ~10ms, BGV/BFV ~seconds, CKKS ~100ms–1s (parameter/hardware dependent).
+            Bootstrapping cost (parameter/hardware dependent): TFHE ~10ms per gate bootstrap; BGV/BFV seconds to minutes;
+            CKKS <strong>tens of seconds per ciphertext</strong> — Bossuat et al. (EUROCRYPT 2021) report 18 s to bootstrap
+            a 32768-slot ciphertext, which is only ~0.55 ms <em>amortized per slot</em>. CKKS bootstrapping looks cheap per
+            value and expensive per operation; quoting the amortized figure as if it were the latency is a common error.
           </p>
         </div>
 
@@ -700,8 +721,12 @@ app.innerHTML = `
       <div class="threat-grid">
         <div>
           <h3>Assumed Attacker</h3>
-          <p>A computationally bounded adversary who observes ciphertexts and has access to the public key, but not the secret key. Security relies on the hardness of the
-            <span class="tooltip-term" tabindex="0" data-tip="Ring Learning With Errors: given (a, a·s + e mod q) for random a and small error e, it is computationally hard to recover the secret s.">RLWE</span> problem.</p>
+          <p>A computationally bounded adversary who observes ciphertexts and evaluation keys but not the secret key. Security relies on the hardness of the
+            <span class="tooltip-term" tabindex="0" data-tip="Ring Learning With Errors: given (a, a·s + e mod q) for random a and small error e, it is computationally hard to recover the secret s.">RLWE</span> problem.
+            Note that this demo encrypts <em>symmetrically</em>: <code>encryptVector</code> forms c0 = m − a·s + e directly
+            from the secret key, and there is no public key anywhere in the code. Deployed CKKS publishes a public key
+            (an RLWE encryption of zero) so anyone can encrypt; that changes who can produce ciphertexts, not what an
+            attacker who only sees them can learn.</p>
         </div>
         <div>
           <h3>What Is Protected</h3>
@@ -830,21 +855,24 @@ const e2Simd = document.querySelector('[data-e2-simd]') as HTMLElement
 const e2TamperOut = document.querySelector('[data-e2-tamper-out]') as HTMLElement
 const e2ViewHint = document.querySelector('[data-e2-view-hint]') as HTMLElement
 
-// Render one ciphertext in the currently-selected view. "signal" shows the
-// centered small-integer coefficients of c0/c1 (legible), "hex" the raw dump.
+// Render one ciphertext in the currently-selected view.
+//
+// "signal" shows what decryption actually recovers: the centered coefficients of
+// c0 + c1·s, i.e. the encoded signal plus the RLWE error term. It deliberately
+// does NOT pretend c0 alone is "signal + noise" — c0 = m − a·s + e is masked by
+// a·s and its coefficients are spread across the whole range (−q/2, q/2], which
+// is exactly why RLWE hides the message. Both halves are printed below so the
+// contrast is visible. "hex" is the raw stored dump.
 function renderCt(ct: CkksCiphertext, ideal?: number[]): string {
   if (e2View === 'hex') return engine.formatCiphertext(ct)
   const { c0, c1 } = engine.centeredCoeffs(ct)
-  let head = `label=${ct.label}, level=${ct.level}, scale=${ct.scale}`
-  if (ideal) {
-    const signal = engine.encode(ideal)
-    head += `\nsignal c0 (ideal):  ${signal.map((v) => v.toString()).join(' ')}`
-  }
-  return (
-    `${head}\n` +
-    `c0 (signal+noise):  ${c0.map((v) => v.toString()).join(' ')}\n` +
-    `c1 (mask a):        ${c1.map((v) => v.toString()).join(' ')}`
-  )
+  const row = (v: bigint[]): string => v.map((x) => x.toString()).join(' ')
+  const lines = [`label=${ct.label}, level=${ct.level}, scale=${ct.scale}`]
+  if (ideal) lines.push(`signal (ideal encode):   ${row(engine.encode(ideal))}`)
+  lines.push(`c0 + c1·s (decrypts to): ${row(engine.decryptPoly(ct))}`)
+  lines.push(`c0 (masked by a·s):      ${row(c0)}`)
+  lines.push(`c1 (the mask a):         ${row(c1)}`)
+  return lines.join('\n')
 }
 
 function refreshE2Views(): void {
@@ -865,8 +893,8 @@ function refreshE2Views(): void {
     })
     e2ViewHint.innerHTML =
       e2View === 'signal'
-        ? '<strong>Signal + noise:</strong> the balanced (centered) small-integer coefficients of each ciphertext. The first line is the ideal encoded signal; the second is what actually decrypts (signal + the tiny RLWE error).'
-        : '<strong>Raw hex:</strong> the ciphertext polynomials as stored — small integers modulo q, shown in hex. Unreadable by design; switch back to Signal + noise to see the structure.'
+        ? '<strong>Signal + noise:</strong> the first line is the ideal encoded polynomial; the second is <code>c0 + c1·s</code> — what decryption actually recovers (the same signal plus the RLWE error, ±1 at these parameters). The <code>c0</code> and <code>c1</code> lines under it are the stored ciphertext halves: each is masked and its coefficients are spread across the full range (−q/2, q/2], so on its own neither reveals anything. That is the RLWE assumption — the signal only reappears when the secret key recombines them.'
+        : '<strong>Raw hex:</strong> the ciphertext polynomials (c0, c1) as stored — integers modulo q, shown in hex. Unreadable by design; switch back to Signal + noise to see what the secret key recovers.'
     refreshE2Views()
   })
 })
@@ -913,7 +941,9 @@ function renderSimd(a: number[], b: number[], actual: number[]): void {
     .join('')
   e2Simd.innerHTML =
     `<div class="simd-inner">${rows}</div>` +
-    `<div class="simd-note">One ciphertext, one add — all 4 lanes moved together (SIMD / batching).</div>`
+    `<div class="simd-note">One ciphertext, one add — all 4 lanes moved together (SIMD / batching). ` +
+    `These are <em>slot</em> values at scale Δ, not the polynomial coefficients: the slot holds v·Δ as a fixed-point ` +
+    `integer, while the canonical embedding in panel B spreads every slot across all ${engine.params.n} coefficients.</div>`
 }
 
 ;(document.querySelector('[data-e2-dec]') as HTMLButtonElement).addEventListener('click', () => {
@@ -1064,7 +1094,7 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   e3Mul = engine.rescale(e3Mul, 'rescaled(mul(A,B))')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
   e3Out.textContent =
-    `Stage 3 — RESCALE: divide by Δ (scale Δ² → Δ) and drop prime L${prevLevel} from the chain.\n` +
+    `Stage 3 — RESCALE: divide by Δ (scale Δ² → Δ) and drop modulus L${prevLevel} from the chain.\n` +
     `Level ${prevLevel} → ${e3Mul.level}. Depth left is now ${e3Mul.level} multiplication${e3Mul.level === 1 ? '' : 's'}.`
   renderPipeline('d', 1)
   updateE3State(e3Mul, e3Mul.level === 0 ? 'Modulus exhausted — bootstrap to continue' : 'Rescaled — one level consumed')
@@ -1420,7 +1450,7 @@ function reportE5(prefix: string): void {
   const out = engine.decryptVector(e5Ct, 1)[0]
   const { digits, rel } = correctDigits(out, e5True)
   renderMeter(digits, rel)
-  return void (e5Log.textContent += `\n${prefix}: ${out.toPrecision(14)} | true ${e5True.toPrecision(14)} | ~${digits} digits`)
+  return void (e5Log.textContent += `\n${prefix}: ${out.toPrecision(14)} | true ${e5True.toPrecision(14)} | ~${digits} digits | depth left ${e5Ct.level}`)
 }
 
 function resetE5(): void {
@@ -1446,6 +1476,23 @@ resetE5()
 })
 
 ;(document.querySelector('[data-e5-mul]') as HTMLButtonElement).addEventListener('click', () => {
+  // Depth budget is a hard wall, not a soft fade. At level 0 there is no modulus
+  // left to drop, so rescale is a no-op: the scale would stay at Δ² and the next
+  // product would wrap around q and decode to a meaningless number. Printing that
+  // number next to "precision is degrading" would be a lie — the value is not
+  // imprecise, it is destroyed. Refuse the operation and say why.
+  if (e5Ct.level === 0) {
+    e5Log.textContent +=
+      `\nDepth budget exhausted — the ciphertext is at level 0.\n` +
+      `  This toy chain has ${engine.params.modChain.length} moduli, so it allows ` +
+      `${engine.params.modChain.length - 1} multiply+rescale cycles and no more.\n` +
+      `  Multiplying again would leave the scale at Δ² with no modulus to divide by; the product\n` +
+      `  would wrap modulo q and decode to garbage, not to a slightly-less-precise answer.\n` +
+      `  A real deployment bootstraps here. This demo stops instead of printing a fake result.\n` +
+      `  Click "Reset π" to start over at level ${engine.params.modChain.length - 1}.`
+    e5Log.scrollTop = e5Log.scrollHeight
+    return
+  }
   const mul = engine.encryptVector([1.1], `mul-${e5Op}`)
   e5Ct = engine.rescale(engine.multiply(e5Ct, mul, `e5-mul-${e5Op}`), `e5-rescale-${e5Op}`)
   e5True *= 1.1
