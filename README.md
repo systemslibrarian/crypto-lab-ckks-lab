@@ -28,7 +28,7 @@ Yes — this is a genuine (toy-parameter) CKKS engine, not a plaintext mock:
 - **Decryption computes `c0 + c1·s (mod q)` and decodes the recovered polynomial.** No displayed "decrypted result" is ever read from a plaintext cache. Corrupting a ciphertext coefficient changes the decrypted output, and decrypting under the wrong secret key yields garbage — both are pinned by unit tests in `test/toyCkks.test.ts`.
 - The encrypted neural-network exhibit runs the entire forward pass (weighted sums, a quadratic polynomial activation whose `x²` term is a real ciphertext multiply, and the output layer) on ciphertexts; only the final result is decrypted, client-side.
 
-The one thing that is deliberately **not** real is security: `n = 8` is far too small to hide anything (128-bit security needs `n ≥ 8192`). Toy timings shown in the UI are illustrative, not measured benchmarks.
+The one thing that is deliberately **not** real is security: `n = 8` is far too small to hide anything. Security is set by the (ring degree, ciphertext modulus) *pair*, not by `n` alone — the [Homomorphic Encryption Standard](https://homomorphicencryption.org/standard/) v1.1 (Albrecht et al., 2018) reaches 128-bit classical security at `n = 4096` only for `log q ≤ 109` (ternary secret), rising to `log q ≤ 218` at `n = 8192`. Since a useful CKKS modulus chain needs far more than 109 bits, `n ≥ 8192` is the practical rule of thumb here, not an absolute floor. Toy timings shown in the UI are illustrative, not measured benchmarks.
 
 ## Tests
 

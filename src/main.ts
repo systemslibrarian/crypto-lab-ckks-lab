@@ -43,7 +43,10 @@ app.innerHTML = `
         relinearization) and rescale operate on those polynomials; and every "decrypted result"
         you see below is computed as <code>c0 + c1·s</code> and decoded — never read from a
         plaintext shortcut. The only thing that is <em>not</em> real is security: n=8 is far too
-        small to be safe (128-bit security needs n ≥ 8192). Do not use this code for anything real.
+        small to be safe. Security comes from the (ring degree, modulus) pair, not n alone — the
+        Homomorphic Encryption Standard v1.1 hits 128-bit classical security at n=4096 only for
+        log q ≤ 109, and at n=8192 for log q ≤ 218. A useful CKKS modulus chain needs more than 109
+        bits, so n ≥ 8192 is the practical rule of thumb. Do not use this code for anything real.
       </div>
 
       <!-- Decision Panel -->
@@ -719,7 +722,8 @@ app.innerHTML = `
         </div>
       </div>
       <div class="disclaimer">
-        ⚠ This is an educational toy implementation with n=8. Production CKKS requires n ≥ 8192 for 128-bit security.
+        ⚠ This is an educational toy implementation with n=8. 128-bit security is set by the (n, log q) pair — the
+        HE Standard permits n=4096 only up to log q ≤ 109 — so production CKKS uses n ≥ 8192 to afford a real modulus chain.
         Do not use this code for any real cryptographic purpose.
       </div>
     </section>
