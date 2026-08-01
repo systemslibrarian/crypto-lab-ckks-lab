@@ -6,8 +6,15 @@
   --muted: rgba(232, 245, 240, 0.72);
   --green: #00ffcc;
   --green-soft: rgba(0, 255, 204, 0.35);
+  /* Control boundaries only (text/number inputs, textareas, .action buttons,
+     tamper select). Those controls are either transparent or filled with a 10%
+     black wash that lands ~1.01:1 against the panel, so the border is the sole
+     boundary and WCAG 2.1 SC 1.4.11 requires 3:1. --green-soft resolves to only
+     2.6:1 and stays as-is for decorative rules (callouts, chips, flow steps). */
+  --green-line: rgba(0, 255, 204, 0.5);
   --orange: #ff7b45;
   --orange-soft: rgba(255, 123, 69, 0.4);
+  --orange-line: rgba(255, 123, 69, 0.7);
   --wire: rgba(255, 255, 255, 0.5);
   --edge: rgba(255, 255, 255, 0.14);
   --focus: #00ffcc;
@@ -21,8 +28,10 @@ html[data-theme='light'] {
   --muted: rgba(26, 42, 36, 0.72);
   --green: #0d6f5e;
   --green-soft: rgba(13, 111, 94, 0.35);
+  --green-line: rgba(13, 111, 94, 0.85);
   --orange: #b34a1e;
   --orange-soft: rgba(179, 74, 30, 0.4);
+  --orange-line: rgba(179, 74, 30, 0.8);
   --wire: rgba(7, 7, 15, 0.6);
   --edge: rgba(0, 0, 0, 0.16);
   --focus: #0d6f5e;
@@ -153,7 +162,7 @@ textarea,
 input[type='text'] {
   width: 100%;
   padding: 0.6rem;
-  border: 1px solid var(--green-soft);
+  border: 1px solid var(--green-line);
   background-color: rgba(0, 0, 0, 0.1);
   color: var(--text);
   border-radius: 0;
@@ -166,7 +175,7 @@ html[data-theme='light'] input[type='text'] {
 }
 
 .action {
-  border: 1px solid var(--green-soft);
+  border: 1px solid var(--green-line);
   color: var(--green);
   background-color: transparent;
   padding: 0.55rem 0.9rem;
@@ -182,7 +191,7 @@ html[data-theme='light'] input[type='text'] {
 }
 
 .action-orange {
-  border-color: var(--orange-soft);
+  border-color: var(--orange-line);
   color: var(--orange);
 }
 
@@ -1131,7 +1140,7 @@ html[data-theme='light'] .tamper {
   padding: 0.4rem;
   background-color: var(--panel);
   color: var(--text);
-  border: 1px solid var(--green-soft);
+  border: 1px solid var(--green-line);
 }
 
 /* ── Exhibit 2: SIMD bracket ──────────────────────────── */
