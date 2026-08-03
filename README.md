@@ -36,8 +36,19 @@ The one thing that is deliberately **not** real is security: `n = 8` is far too 
 
 ```bash
 npm test        # vitest crypto unit tests (round-trip, add/multiply/rescale, tamper-detection, wrong-key, encrypted NN)
-npm run test:a11y   # Playwright + axe WCAG gate (dark + light)
+npm run test:a11y   # Playwright: rendered-claims gate + axe WCAG gate (dark + light)
 ```
+
+`e2e/claims.spec.ts` drives the production build in Chromium and re-derives what the six
+exhibits print. The encoding visualizer's three rows must satisfy `noisy = encoded + delta`
+coefficient by coefficient, with the caption's ±bound equal to the largest delta shown; the
+SIMD lanes must quote the same decrypted values the summary above them prints; nudging
+coefficient 0 of `c0` by +2Δ must move the decrypted slot by exactly +2, starting from the
+value the previous decryption reported; scale, degree, level and the modulus-chain chips must
+move together through multiply → relinearize → rescale; the encrypted network's class must
+equal the plaintext network's; and the precision meter's lit segments must equal its own digit
+count, itself equal to the base-10 magnitude of the real decrypt error. Every "run this before
+that" refusal and the level-0 depth wall are driven to their stated end states.
 
 ## Live Demo
 
