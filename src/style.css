@@ -1244,7 +1244,14 @@ html[data-theme='light'] .pipe-block {
   background-color: var(--green-soft);
 }
 
-.mod-chip.current .mod-q { color: var(--text); }
+/* The current chip swaps its fill from --panel to --green-soft, so BOTH labels
+   have to leave --muted behind: --muted is tuned against --panel and lands at
+   3.71:1 in dark / 4.42:1 in light on the green fill, under WCAG AA either way.
+   .mod-q was already promoted to --text; .mod-lvl was missed, and the miss was
+   invisible to the gate because a chip only becomes .current after exhibit 3
+   has been driven. On --green-soft, --text measures 5.59:1 dark / 8.65:1 light. */
+.mod-chip.current .mod-q,
+.mod-chip.current .mod-lvl { color: var(--text); }
 
 .mod-chip.dropped {
   opacity: 0.32;
