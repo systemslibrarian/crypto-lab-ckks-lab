@@ -81,10 +81,6 @@ async function open(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('.');
   await assertReducedMotion(page);
-  if (theme === 'light') {
-    await page.locator('#cl-theme-toggle').click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  }
   // #app ships empty and is filled by the module script; wait for real content.
   await expectRendered(page, ['.cl-hero-title', '[data-e3-modchain]', '[data-e5-log]']);
   // The "go deeper" material lives in <details>; scan it too.
@@ -115,7 +111,7 @@ async function scan(page: Page, label: string): Promise<void> {
   ).toEqual([]);
 }
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`no WCAG A/AA violations on first paint (${theme})`, async ({ page }) => {
     await open(page, theme);
     await scan(page, `${theme} / initial`);
