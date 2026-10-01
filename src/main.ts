@@ -1499,3 +1499,45 @@ resetE5()
   e5Op += 1
   reportE5('After multiply+rescale')
 })
+
+// Keep every glossary tooltip inside the viewport. Each one is a ::after box
+// hidden only with opacity, so it occupies layout at all times: at phone width
+// a 280px tooltip centred on a term near the right of a line pushed the whole
+// page sideways (423px at 380px wide once the web fonts load), and one near
+// the left edge was cut off when shown. Shift each into [8, vw - 8] through
+// --tip-dx. Positions move only when line widths do, so re-fit on resize,
+// when fonts finish loading, and when a <details> opens.
+let tipFrame = 0
+function fitTooltips(): void {
+  const terms = Array.from(document.querySelectorAll<HTMLElement>('.tooltip-term'))
+  const vw = document.documentElement.clientWidth
+  for (const term of terms) term.style.removeProperty('--tip-dx')
+  const shifts = terms.map((term) => {
+    const r = term.getBoundingClientRect()
+    // A pseudo-element has no rect of its own; rebuild its border box.
+    const tip = getComputedStyle(term, '::after')
+    const w = ['width', 'paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
+      .map((k) => parseFloat(tip[k as 'width']) || 0)
+      .reduce((a, b) => a + b, 0)
+    if (!r.width || !w) return 0
+    const centre = r.left + r.width / 2
+    let dx = 0
+    if (centre + w / 2 > vw - 8) dx = vw - 8 - (centre + w / 2)
+    if (centre - w / 2 + dx < 8) dx = 8 - (centre - w / 2)
+    return Math.round(dx)
+  })
+  terms.forEach((term, i) => {
+    if (shifts[i]) term.style.setProperty('--tip-dx', `${shifts[i]}px`)
+  })
+}
+function scheduleTooltipFit(): void {
+  if (tipFrame) return
+  tipFrame = requestAnimationFrame(() => {
+    tipFrame = 0
+    fitTooltips()
+  })
+}
+new ResizeObserver(scheduleTooltipFit).observe(app)
+document.addEventListener('toggle', scheduleTooltipFit, true)
+void document.fonts?.ready.then(scheduleTooltipFit)
+scheduleTooltipFit()

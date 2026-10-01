@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { auditContrast, formatContrastFailures } from './contrast';
+import { expectNoHorizontalOverflow } from './reflow';
 
 /**
  * WCAG regression gate.
@@ -203,3 +204,73 @@ for (const theme of ['dark'] as const) {
     await scan(page, `${theme} / exhibit 5 depth exhausted`);
   });
 }
+
+/**
+ * WCAG 1.4.10 reflow at phone width, over the states the scans above drive.
+ *
+ * At 380px this page scrolled sideways (423px with the web fonts loaded, 450px
+ * without them) with every scan green. Two causes: each exhibit is a grid item
+ * whose automatic minimum width is its min-content, so a wide scroller inside
+ * widened the exhibit instead of scrolling; and the glossary tooltips are
+ * opacity-hidden ::after boxes that occupy layout, so one centred on a term
+ * near the right of a line pushed the page wider.
+ */
+test.describe('reflow at 380px', () => {
+  test.use({ viewport: { width: 380, height: 800 } });
+
+  test('no horizontal page scroll on first paint, details open', async ({ page }) => {
+    await open(page, 'dark');
+    await expectNoHorizontalOverflow(page, '380px / initial');
+  });
+
+  test('no horizontal page scroll through exhibits 1 to 3', async ({ page }) => {
+    await open(page, 'dark');
+
+    await page.locator('[data-e1-run]').click();
+    await expect(page.locator('[data-e1-out]')).toContainText('decrypt');
+    await page.locator('[data-e2-encode]').click();
+    await page.locator('[data-e2-enc-a]').click();
+    await page.locator('[data-e2-enc-b]').click();
+    await page.locator('[data-e2-add]').click();
+    await page.locator('[data-e2-dec]').click();
+    await expect(page.locator('[data-e2-out]')).toContainText('Per-slot error');
+    await expectNoHorizontalOverflow(page, '380px / exhibit 2 decrypted');
+
+    await page.locator('[data-e2-tamper]').click();
+    await expect(page.locator('[data-e2-tamper-out]')).toContainText('Nudged coefficient');
+    await expectNoHorizontalOverflow(page, '380px / exhibit 2 tampered');
+
+    await page.locator('[data-e3-enc]').click();
+    await expect(page.locator('.mod-chip.current')).toBeVisible();
+    await page.locator('[data-e3-mul]').click();
+    await expect(page.locator('[data-e3-c2]')).toHaveClass(/show/);
+    await expectNoHorizontalOverflow(page, '380px / exhibit 3 degree-2 transient');
+    await expect(page.locator('[data-e3-status]')).toContainText('Relinearized', {
+      timeout: 5_000,
+    });
+    await page.locator('[data-e3-rescale]').click();
+    await expect(page.locator('[data-e3-out]')).toContainText('RESCALE');
+    await page.locator('[data-e3-dec]').click();
+    await expectNoHorizontalOverflow(page, '380px / exhibit 3 rescaled and decrypted');
+  });
+
+  test('no horizontal page scroll through exhibits 4 and 5', async ({ page }) => {
+    await open(page, 'dark');
+
+    await page.locator('[data-e4-plain]').click();
+    await page.locator('[data-e4-enc]').click();
+    await page.locator('[data-e4-run]').click();
+    await expect(page.locator('.net-edge.on').first()).toBeVisible();
+    await page.locator('[data-e4-dec]').click();
+    await expect(page.locator('.net-node.decrypted')).toBeVisible();
+    await expectNoHorizontalOverflow(page, '380px / exhibit 4 decrypted');
+
+    await page.locator('[data-e5-reset]').click();
+    await page.locator('[data-e5-add]').click();
+    for (let i = 0; i < 5; i++) {
+      await page.locator('[data-e5-mul]').click();
+    }
+    await expect(page.locator('[data-e5-log]')).toContainText('Depth budget exhausted');
+    await expectNoHorizontalOverflow(page, '380px / exhibit 5 depth exhausted');
+  });
+});
