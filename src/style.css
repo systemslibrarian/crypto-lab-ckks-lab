@@ -127,6 +127,10 @@ li {
 }
 
 .exhibit {
+  /* A grid item's automatic minimum is its min-content width, so one wide
+     scroller inside an exhibit used to widen the exhibit (and the page) past
+     a phone's viewport instead of scrolling. */
+  min-width: 0;
   border: 1px solid var(--edge);
   background-color: var(--panel);
   padding: clamp(0.75rem, 2vw, 1.2rem);
@@ -427,6 +431,8 @@ html[data-theme='light'] .phase-label-orange {
   pointer-events: none;
   transition: opacity 0.15s;
   z-index: 10;
+  /* Set by fitTooltips() in main.ts to keep the tooltip inside the viewport. */
+  translate: var(--tip-dx, 0) 0;
 }
 
 .tooltip-term:hover::after,
