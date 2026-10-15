@@ -753,6 +753,18 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section class="threat-model" aria-labelledby="reaction-heading">
+      <h2 id="reaction-heading">Deployment caveat: even one validity bit can leak</h2>
+      <p><a href="https://eprint.iacr.org/2026/2490">Bian et al., ePrint 2026/2490 (15 October 2026)</a>
+        report key recovery when public coefficient-to-slot (C2S) evaluation keys are combined with
+        a client's observable one-bit validity response. This is a protocol-level reaction attack under
+        those conditions, not a break of RLWE or CKKS IND-CPA security. Keeping raw decrypted values
+        private alone does not close this feedback channel.</p>
+      <p>This symmetric toy engine has no public encryption key or C2S evaluation layer and does not
+        reproduce the attack. A real deployment must assess what its responses reveal to an untrusted
+        evaluator; this lab does not establish noise flooding as a remedy for that reaction channel.</p>
+    </section>
+
     <!-- ── References ─────────────────────────────────────── -->
     <section class="references" aria-labelledby="refs-heading">
       <h2 id="refs-heading">References &amp; Standards</h2>

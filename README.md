@@ -71,6 +71,8 @@ Six exhibits:
 - Parameter choice (ring degree, modulus chain, scale) sets both the security level and the available compute budget — too small a ring or too large a modulus can break the underlying RLWE security.
 - Approximate-decryption leakage (the IND-CPA^D class of attacks): handing raw decrypted CKKS results to an untrusted party can leak information about the secret key unless the decryption output is noise-flooded.
 
+- **Validity-response leakage:** [Bian et al., ePrint 2026/2490 (15 October 2026)](https://eprint.iacr.org/2026/2490) report key recovery in CKKS deployments combining public coefficient-to-slot (C2S) evaluation keys with an observable client one-bit validity response. Their attack is conditional on this deployment surface and does not break RLWE or CKKS IND-CPA security. Keeping raw decrypted values private alone does not address this separate feedback channel; protocols must assess what client reactions reveal to an untrusted evaluator. This symmetric toy engine has no public encryption key or C2S evaluation layer and does not reproduce the attack. Noise flooding for approximate-decryption leakage is not established here as a remedy for this reaction attack.
+
 ## Real-World Usage
 
 - Privacy-preserving machine-learning inference, where a model runs on encrypted user inputs without the server seeing the plaintext (the canonical CKKS use case).
