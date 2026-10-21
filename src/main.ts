@@ -14,6 +14,7 @@ app.innerHTML = `
         <h1 class="cl-hero-title">CKKS</h1>
         <p class="cl-hero-sub">FHE · approximate real-number arithmetic</p>
         <p class="cl-hero-desc">Encrypt real-number vectors, then homomorphically add, multiply, rescale, and run a 2-layer neural network on the ciphertexts — decrypting only the final approximate result.</p>
+          <p class="cl-hero-desc"><strong>Teaching parameters: n=8, 4 slots, Δ=2<sup>10</sup>. Not production-ready; no security or external-audit claim.</strong></p>
       </div>
       <aside class="cl-hero-why" aria-label="Why it matters">
         <span class="cl-hero-why-label">WHY IT MATTERS</span>
@@ -31,10 +32,6 @@ app.innerHTML = `
         CKKS is the <span class="tooltip-term" tabindex="0" data-tip="Fully Homomorphic Encryption allows computation on encrypted data without decrypting it first.">FHE</span> scheme
         purpose-built for approximate real-number arithmetic on encrypted data — the foundation of encrypted machine learning inference.
       </p>
-
-      <div class="disclaimer">
-        ⚠ Educational demo — toy parameters (n=8, 4 slots, Δ=2<sup>10</sup>). Not production-ready. Not externally audited.
-      </div>
 
       <div class="callout" role="note">
         <strong>What's real here:</strong> this is a genuine (if tiny) CKKS implementation.
