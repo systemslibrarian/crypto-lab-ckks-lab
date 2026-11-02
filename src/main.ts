@@ -1,6 +1,7 @@
 import './style.css'
 import { ToyCkksEngine } from './toyCkks'
 import type { CkksCiphertext } from './types'
+import { COEFFICIENTS, modeledResponse, narrowCandidates, type Coefficient, type Probe } from './reactionModel'
 
 const engine = new ToyCkksEngine()
 const app = document.querySelector('#app') as HTMLDivElement
@@ -760,6 +761,29 @@ app.innerHTML = `
       <p>This symmetric toy engine has no public encryption key or C2S evaluation layer and does not
         reproduce the attack. A real deployment must assess what its responses reveal to an untrusted
         evaluator; this lab does not establish noise flooding as a remedy for that reaction channel.</p>
+      <div class="reaction-demo" aria-labelledby="reaction-demo-heading">
+        <h3 id="reaction-demo-heading">Explore the feedback boundary (conceptual)</h3>
+        <p>Choose a coefficient for the learner-only audit. The attacker sees only the response
+          allowed by the toggles. Support and sign are <em>abstract decisions</em> derived from
+          the paper's two probe phases; this panel creates no CKKS ciphertext and does not
+          reproduce its parameter bounds, C2S transform, or key recovery.</p>
+        <div class="reaction-controls">
+          <label for="reaction-secret">Hidden coefficient (learner sets it)
+            <select id="reaction-secret"><option value="-1">−1</option><option value="0">0</option><option value="1">+1</option></select>
+          </label>
+          <label><input type="checkbox" id="reaction-pk" checked> Evaluator has public encryption key</label>
+          <label><input type="checkbox" id="reaction-c2s" checked> Evaluator has C2S evaluation keys</label>
+          <label><input type="checkbox" id="reaction-visible" checked> Client's validity response is observable</label>
+        </div>
+        <div class="reaction-actions">
+          <button type="button" data-reaction-support>Send support probe: is it zero?</button>
+          <button type="button" data-reaction-sign>Send sign probe: is it +1?</button>
+          <button type="button" data-reaction-reset>Reset attacker knowledge</button>
+        </div>
+        <div class="reaction-result" data-reaction-result role="status" aria-live="polite">Attacker's possibilities: −1, 0, +1. Send a probe to see which observations are available.</div>
+        <details><summary>Learner-only audit</summary><p data-reaction-audit>The chosen coefficient is −1. This selection is not an attacker input.</p></details>
+        <p class="reaction-limit">The actual result is a conditional deployment attack, not a break of the underlying RLWE assumption or of this symmetric toy. A hidden response blocks <em>this observed-bit route</em>; it does not establish complete deployment security.</p>
+      </div>
     </section>
 
     <!-- ── References ─────────────────────────────────────── -->
@@ -777,6 +801,45 @@ app.innerHTML = `
 
   </div>
 `
+
+const reactionSecret = document.getElementById('reaction-secret') as HTMLSelectElement
+const reactionPk = document.getElementById('reaction-pk') as HTMLInputElement
+const reactionC2s = document.getElementById('reaction-c2s') as HTMLInputElement
+const reactionVisible = document.getElementById('reaction-visible') as HTMLInputElement
+const reactionResult = document.querySelector('[data-reaction-result]') as HTMLElement
+const reactionAudit = document.querySelector('[data-reaction-audit]') as HTMLElement
+let possibilities: Coefficient[] = [...COEFFICIENTS]
+
+function formatPossibilities(): string {
+  return possibilities.map(n => n === -1 ? '−1' : n === 1 ? '+1' : '0').join(', ')
+}
+
+function resetReaction(): void {
+  possibilities = [...COEFFICIENTS]
+  reactionResult.textContent = `Attacker's possibilities: ${formatPossibilities()}. No probe result has been observed.`
+  reactionAudit.textContent = `The chosen coefficient is ${reactionSecret.value}. This selection is not an attacker input.`
+}
+
+function runReaction(probe: Probe): void {
+  if (!reactionPk.checked || !reactionC2s.checked) {
+    reactionResult.textContent = `The modeled coefficient-targeted probe cannot be assembled without both the public encryption key and C2S evaluation keys. Attacker's possibilities remain ${formatPossibilities()}. This does not prove that other attacks are impossible.`
+    return
+  }
+  if (!reactionVisible.checked) {
+    reactionResult.textContent = `The client keeps its validity response private. This route supplies no observable bit; attacker possibilities remain ${formatPossibilities()}. Other leakage channels are outside this panel.`
+    return
+  }
+  const secret = Number(reactionSecret.value) as Coefficient
+  const accepted = modeledResponse(secret, probe)
+  possibilities = narrowCandidates(possibilities, probe, accepted)
+  reactionResult.textContent = `${probe === 'support' ? 'Support' : 'Sign'} probe: client response ${accepted ? 'ACCEPT' : 'REJECT'} (one bit). Attacker's remaining possibilities: ${formatPossibilities() || 'none — reset after changing the hidden coefficient'}. The real attack needs actual CKKS probe construction and noise bounds.`
+}
+
+reactionSecret.addEventListener('change', resetReaction)
+for (const checkbox of [reactionPk, reactionC2s, reactionVisible]) checkbox.addEventListener('change', resetReaction)
+;(document.querySelector('[data-reaction-support]') as HTMLButtonElement).addEventListener('click', () => runReaction('support'))
+;(document.querySelector('[data-reaction-sign]') as HTMLButtonElement).addEventListener('click', () => runReaction('sign'))
+;(document.querySelector('[data-reaction-reset]') as HTMLButtonElement).addEventListener('click', resetReaction)
 
 // Theme is owned by the shared Crypto Lab header (index.html). This module no
 // longer renders its own toggle, so there is nothing to wire up here.

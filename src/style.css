@@ -1406,3 +1406,10 @@ html[data-theme='light'] .relu-chart {
 @media (min-width: 720px) {
   .pipeline { grid-template-columns: 1fr; }
 }
+/* The feedback exercise is an information-flow model, not part of toy CKKS. */
+.reaction-demo { margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border, #777); border-radius: 0.75rem; }
+.reaction-controls, .reaction-actions { display: flex; flex-wrap: wrap; gap: 0.7rem 1rem; margin: 0.8rem 0; align-items: center; }
+.reaction-controls label { display: inline-flex; align-items: center; gap: 0.4rem; }
+.reaction-controls select { padding: 0.35rem; }
+.reaction-result { padding: 0.8rem; border-left: 3px solid currentColor; overflow-wrap: anywhere; }
+.reaction-limit { font-size: 0.9rem; }

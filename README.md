@@ -73,6 +73,8 @@ Six exhibits:
 
 - **Validity-response leakage:** [Bian et al., ePrint 2026/2490 (15 October 2026)](https://eprint.iacr.org/2026/2490) report key recovery in CKKS deployments combining public coefficient-to-slot (C2S) evaluation keys with an observable client one-bit validity response. Their attack is conditional on this deployment surface and does not break RLWE or CKKS IND-CPA security. Keeping raw decrypted values private alone does not address this separate feedback channel; protocols must assess what client reactions reveal to an untrusted evaluator. This symmetric toy engine has no public encryption key or C2S evaluation layer and does not reproduce the attack. Noise flooding for approximate-decryption leakage is not established here as a remedy for this reaction attack.
 
+  The deployment caveat now includes a **conceptual feedback interaction**: select a hidden ternary coefficient, make the public-key and C2S capabilities available or unavailable, choose whether the client's validity bit is visible, and try abstract support/positive-sign probes. With all preconditions present, each modeled response filters the attacker's candidate set; keeping it private removes that particular observation. The decisions reflect the paper's two-phase support/sign logic, but the panel constructs no CKKS query, proves no noise bound, and makes no key-recovery or security claim about this toy engine. The learner-only audit is separate from the attacker view.
+
 ## Real-World Usage
 
 - Privacy-preserving machine-learning inference, where a model runs on encrypted user inputs without the server seeing the plaintext (the canonical CKKS use case).
