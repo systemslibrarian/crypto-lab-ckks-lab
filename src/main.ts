@@ -697,7 +697,7 @@ app.innerHTML = `
             <em>historical configuration</em>, not a current lower bound. Its ~0.55 ms per slot is an amortized cost,
             not the time a caller waits for the whole operation.
           </p>
-          <aside class="callout" id="tutti-research" role="note" aria-labelledby="tutti-heading">
+          <aside class="callout" id="tutti-research" role="note" aria-labelledby="tutti-heading" style="scroll-margin-top: 6rem">
             <h3 id="tutti-heading">A newer CPU result — 9 November 2026</h3>
             <p>Köstler and Guimarães' <a href="https://eprint.iacr.org/2026/2848">TUTTI preprint</a> (§6)
               reports a single-message CKKS refresh in <strong>2.4 ms on 14 threads of an Apple M5 Pro</strong>.
