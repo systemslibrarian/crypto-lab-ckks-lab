@@ -439,9 +439,9 @@ app.innerHTML = `
             Multiplying two ciphertexts multiplied their underlying polynomials, causing the scale to grow from Δ to Δ².
             <span class="tooltip-term" tabindex="0" data-tip="Rescaling divides every coefficient by the scale Δ and drops one prime from the modulus chain. This is the CKKS mechanism for managing noise growth after multiplication.">Rescaling</span>
             divided by Δ and dropped one modulus level, restoring the scale to Δ. Each multiplication-rescale cycle
-            consumes one level from the modulus chain. When levels are exhausted, expensive
-            <span class="tooltip-term" tabindex="0" data-tip="Bootstrapping refreshes a ciphertext's modulus levels so more operations can be performed. It is by far the most expensive operation in CKKS: tens of seconds per ciphertext (18 s for 32768 slots in Bossuat et al., EUROCRYPT 2021), though only ~0.5 ms amortized per slot.">bootstrapping</span>
-            is required to continue.
+            consumes one level from the modulus chain. Continuing beyond the available depth requires
+            <span class="tooltip-term" tabindex="0" data-tip="Bootstrapping restores capacity for more operations before decryption becomes unreliable. Its cost depends on the method, parameters, precision, batch size and hardware. The 18-second example from 2021 is historical, not a universal latency floor. See the sourced cost comparison in Exhibit 6.">bootstrapping</span>
+            before the ciphertext becomes unreliable. This toy does not implement bootstrapping.
           </p>
         </div>
 
@@ -691,12 +691,23 @@ app.innerHTML = `
             • Need real-number ML inference or floating-point statistics? → <strong>CKKS</strong><br>
             • Not sure? Start with CKKS if your data is real-valued, BGV if integer, TFHE if bit-level.
           </div>
-          <p>
-            Bootstrapping cost (parameter/hardware dependent): TFHE ~10ms per gate bootstrap; BGV/BFV seconds to minutes;
-            CKKS <strong>tens of seconds per ciphertext</strong> — Bossuat et al. (EUROCRYPT 2021) report 18 s to bootstrap
-            a 32768-slot ciphertext, which is only ~0.55 ms <em>amortized per slot</em>. CKKS bootstrapping looks cheap per
-            value and expensive per operation; quoting the amortized figure as if it were the latency is a common error.
+          <p id="bootstrapping-cost">
+            <strong>Bootstrapping has no single fixed cost.</strong> Method, parameters, precision, batch size and hardware
+            all matter. The 18 s for a 32768-slot ciphertext reported by Bossuat et al. (EUROCRYPT 2021) is a
+            <em>historical configuration</em>, not a current lower bound. Its ~0.55 ms per slot is an amortized cost,
+            not the time a caller waits for the whole operation.
           </p>
+          <aside class="callout" id="tutti-research" role="note" aria-labelledby="tutti-heading">
+            <h3 id="tutti-heading">A newer CPU result — 9 November 2026</h3>
+            <p>Köstler and Guimarães' <a href="https://eprint.iacr.org/2026/2848">TUTTI preprint</a> (§6)
+              reports a single-message CKKS refresh in <strong>2.4 ms on 14 threads of an Apple M5 Pro</strong>.
+              That S13 configuration leaves one multiplication level, with about 6.5 bits of measured precision;
+              it uses specially structured sparse secrets with a separate security analysis.</p>
+            <p>These are the authors' benchmark conditions, not this browser's timings or a complete inference run.
+              CKKS refreshes approximate values; TFHE programmable bootstrapping evaluates a lookup table on exact
+              messages with a bounded failure probability. A faster result in one configuration does not make either
+              scheme universally faster. This toy implements neither TUTTI nor bootstrapping.</p>
+          </aside>
         </div>
 
         <div class="exhibit-section">

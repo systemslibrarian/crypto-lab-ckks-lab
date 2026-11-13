@@ -63,6 +63,24 @@ Six exhibits:
 5. **Precision, scale, and error accumulation** — a segmented precision meter whose lit segments are computed from the *actual* decrypt error, degrading live as you add and multiply. The toy chain's three multiply+rescale cycles are a hard wall, not a fade: at level 0 the demo refuses a further multiply and explains that the product would wrap modulo q rather than merely lose precision.
 6. **The FHE trilogy** — the full TFHE + BGV/BFV + CKKS comparison with a decision tree and library guide.
 
+## Bootstrapping cost — research update, 13 November 2026
+
+Exhibit 6 now labels the 18-second, 32768-slot figure from Bossuat et al. (2021)
+as a historical configuration, not a universal CKKS latency floor. Per-slot
+amortized cost and whole-operation latency remain separate.
+
+[Köstler and Guimarães, *TUTTI*, ePrint 2026/2848](https://eprint.iacr.org/2026/2848)
+(9 November 2026; **preprint**, §6) report a 2.4-ms single-message refresh on
+14 threads of an Apple M5 Pro. Their S13 configuration leaves one multiplication
+level, has about 6.5 bits of measured precision, and uses structured sparse
+secrets with a separate security analysis. This is not a complete inference
+benchmark or a timing measured by this browser. CKKS's approximate refresh and
+TFHE's exact-message lookup-table bootstrapping have different guarantees; one
+benchmark does not establish a universal speed ranking. The toy implements
+neither bootstrapping nor TUTTI. Both the multiplication tooltip and the visible
+[cost comparison](https://systemslibrarian.github.io/crypto-lab-ckks-lab/#tutti-research)
+state that scope.
+
 ## What Can Go Wrong
 
 - CKKS is *approximate*: every ciphertext carries noise, so results are never exact. Using it where an exact answer is required (financial totals, equality checks, cryptographic values) silently yields wrong results.
