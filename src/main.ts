@@ -147,7 +147,7 @@ app.innerHTML = `
               <li>ML already uses floating-point approximations (weights and activations) — CKKS error fits naturally.</li>
             </ul>
             <h3>Scale Parameter (Δ)</h3>
-            <p>Encode 3.14 at Δ=2<sup>40</sup>: 3.14 × 2<sup>40</sup> ≈ 3,452,812,080,537.6, then rounded to integer.</p>
+            <p data-e1-scale-example>Encode 3.14 at Δ=2<sup>40</sup>: 3.14 × 2<sup>40</sup> ≈ 3,452,466,511,216.6, then rounded to integer.</p>
             <p>Multiplication grows scale to Δ²; <span class="tooltip-term" tabindex="0" data-tip="Rescaling divides ciphertext coefficients by the scale factor Δ, reducing the scale back to Δ and consuming one modulus level.">rescaling</span> reduces it back toward Δ.</p>
           </div>
           <div>
@@ -401,7 +401,7 @@ app.innerHTML = `
               </p>
             </div>
             <div class="pipe-block">
-              <div class="pipe-label">Scale — multiply doubles it to Δ², rescale halves it back to Δ</div>
+              <div class="pipe-label">Scale — multiply squares it to Δ², rescale divides by Δ to bring it back</div>
               <div class="scalebar" data-e3-scalebar role="img" aria-label="Current ciphertext scale">
                 <div class="scalebar-fill" data-e3-scalefill></div>
                 <span class="scalebar-txt" data-e3-scaletxt>Δ</span>
@@ -437,7 +437,7 @@ app.innerHTML = `
           <div class="phase-label">C — What just happened</div>
           <p>
             Multiplying two ciphertexts multiplied their underlying polynomials, causing the scale to grow from Δ to Δ².
-            <span class="tooltip-term" tabindex="0" data-tip="Rescaling divides every coefficient by the scale Δ and drops one prime from the modulus chain. This is the CKKS mechanism for managing noise growth after multiplication.">Rescaling</span>
+            <span class="tooltip-term" tabindex="0" data-tip="Rescaling divides every coefficient by the scale Δ and drops one modulus from the chain (a power of two in this toy; a prime in an RNS library). This is the CKKS mechanism for managing noise growth after multiplication.">Rescaling</span>
             divided by Δ and dropped one modulus level, restoring the scale to Δ. Each multiplication-rescale cycle
             consumes one level from the modulus chain. Continuing beyond the available depth requires
             <span class="tooltip-term" tabindex="0" data-tip="Bootstrapping restores capacity for more operations before decryption becomes unreliable. Its cost depends on the method, parameters, precision, batch size and hardware. The 18-second example from 2021 is historical, not a universal latency floor. See the sourced cost comparison in Exhibit 6.">bootstrapping</span>
@@ -1084,7 +1084,7 @@ const e3ScaleFill = document.querySelector('[data-e3-scalefill]') as HTMLElement
 const e3ScaleTxt = document.querySelector('[data-e3-scaletxt]') as HTMLElement
 const e3DegreeEl = document.querySelector('[data-e3-degree]') as HTMLElement
 const e3C2El = document.querySelector('[data-e3-c2]') as HTMLElement
-// One chip per modulus in the chain, top prime = top level. Highlights the
+// One chip per modulus in the chain, largest modulus = top level. Highlights the
 // current level; dims (drops) every level below it.
 function renderModchain(level: number | null): void {
   const chain = engine.params.modChain
@@ -1104,7 +1104,7 @@ function renderModchain(level: number | null): void {
 // degree: 1 => (c0,c1); 2 => (c0,c1,c2). scaleState: 'd' | 'd2'.
 function renderPipeline(scaleState: 'd' | 'd2', degree: 1 | 2): void {
   e3ScaleFill.style.width = scaleState === 'd2' ? '100%' : '50%'
-  e3ScaleTxt.textContent = scaleState === 'd2' ? 'Δ² (double)' : 'Δ'
+  e3ScaleTxt.textContent = scaleState === 'd2' ? 'Δ² (squared)' : 'Δ'
   e3ScaleFill.classList.toggle('is-hot', scaleState === 'd2')
   e3C2El.classList.toggle('show', degree === 2)
   e3DegreeEl.classList.toggle('is-deg2', degree === 2)
@@ -1154,9 +1154,9 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   e3Mul = engine.multiply(e3A, e3B, 'mul(A,B)')
   e3Ct.textContent = engine.formatCiphertext(e3Mul)
   e3Out.textContent =
-    `Stage 1 — MULTIPLY: the tensor product makes a degree-2 ciphertext (c0,c1,c2) and the scale doubles to Δ².\n` +
+    `Stage 1 — MULTIPLY: the tensor product makes a degree-2 ciphertext (c0,c1,c2) and the scale is squared to Δ² (its bit-length doubles).\n` +
     `Stage 2 — RELINEARIZE: the evaluation key folds c2 back in, returning a normal (c0,c1) pair (shown below).\n` +
-    `Next: rescale to halve the scale back to Δ and drop one modulus level.`
+    `Next: rescale to divide the scale by Δ, back to Δ, and drop one modulus level.`
   // Show the transient degree-2 (c2 appears) then collapse to degree-1 to make
   // the relinearization step visible. The engine has already relinearized; this
   // animation narrates the two internal stages of a single multiply().

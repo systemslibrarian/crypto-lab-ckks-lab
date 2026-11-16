@@ -269,19 +269,26 @@ test('exhibit 3: the multiply → relinearize → rescale pipeline moves scale, 
   await expect(c2).not.toHaveClass(/show/);
   await expect(page.locator('[data-e3-scalefill]')).toHaveAttribute('style', 'width: 50%;');
 
-  // Multiply: scale doubles to Δ² and the degree-2 c2 component appears...
+  // Multiply: the scale is squared to Δ² and the degree-2 c2 component appears...
   await page.locator('[data-e3-mul]').click();
   await expect(scale).toHaveText('2^20 (Δ²)');
   await expect(status).toHaveText('Multiplied → Δ², degree 2 (c0,c1,c2)');
   await expect(c2).toHaveClass(/show/);
   await expect(page.locator('[data-e3-scalefill]')).toHaveAttribute('style', 'width: 100%;');
+  // The scale is SQUARED, not doubled: with Δ = 2^10 the product's scale is
+  // Δ² = 2^20 = 1,048,576, where doubling would give 2^11 = 2,048. Only the
+  // bit-length doubles, so the chip must not call the step a doubling.
+  await expect(page.locator('[data-e3-scaletxt]')).toHaveText('Δ² (squared)');
+  const squared = Number((await scale.innerText()).match(/2\^(\d+)/)![1]);
+  expect(2 ** squared, 'the product scale is Δ squared').toBe((2 ** 10) ** 2);
+  expect(2 ** squared, 'the product scale is not Δ doubled').not.toBe(2 * 2 ** 10);
   // ...and relinearization then folds it back to a (c0,c1) pair.
   await expect(status).toHaveText('Relinearized → back to (c0,c1); rescale needed', { timeout: 5000 });
   await expect(c2).not.toHaveClass(/show/);
   await expect(scale).toHaveText('2^20 (Δ²)'); // relinearization does not rescale
   await expect(level).toHaveText('3');
 
-  // Rescale: scale halves back to Δ and exactly one level is consumed.
+  // Rescale: the scale is divided by Δ, back to Δ, and exactly one level is consumed.
   await page.locator('[data-e3-rescale]').click();
   await expect(scale).toHaveText('2^10 (Δ)');
   await expect(level).toHaveText('2');
@@ -541,4 +548,19 @@ test('exhibit 5: precision really degrades as operations accumulate', async ({ p
   // Three multiplications cost precision; they never gain it.
   expect(endDigits).toBeLessThanOrEqual(startDigits);
   expect(await page.locator('[data-e5-meter] .seg.lit').count()).toBe(endDigits);
+});
+
+// ─── Exhibit 1 — the worked encoding figure ──────────────────────────
+
+test('exhibit 1: the printed 3.14 x 2^40 product is the product', async ({ page }) => {
+  await page.goto('.');
+  // The line lives inside the closed "Go deeper" details, so read textContent
+  // rather than innerText, which is empty while the disclosure is shut.
+  const line = ((await page.locator('[data-e1-scale-example]').textContent()) ?? '').replace(/\s+/g, ' ');
+  // Recomputed, not pinned: 3.14 x 2^40 = 3,452,466,511,216.64. The page used to
+  // print 3,452,812,080,537.6, which is what 3.14031... x 2^40 would give.
+  const printed = Number(line.match(/≈ ([\d,]+\.\d+)/)![1].replaceAll(',', ''));
+  expect(printed, 'the printed product is 3.14 x 2^40').toBeCloseTo(3.14 * 2 ** 40, 0);
+  expect(line).toContain('3,452,466,511,216.6');
+  expect(line).not.toContain('3,452,812,080,537.6');
 });
