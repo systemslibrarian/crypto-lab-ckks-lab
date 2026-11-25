@@ -564,3 +564,32 @@ test('exhibit 1: the printed 3.14 x 2^40 product is the product', async ({ page 
   expect(line).toContain('3,452,466,511,216.6');
   expect(line).not.toContain('3,452,812,080,537.6');
 });
+
+test('editing a slot invalidates its ciphertext and the results that used it', async ({ page }) => {
+  await page.goto('.');
+  for (const action of ['enc-a', 'enc-b', 'add', 'dec']) await page.locator(`[data-e2-${action}]`).click();
+  await expect(page.locator('.simd-lane')).toHaveCount(4);
+  await page.locator('#vec-a').fill('10,20,30,40');
+  await expect(page.locator('.simd-lane')).toHaveCount(0);
+  await page.locator('[data-e2-dec]').click();
+  await expect(page.locator('[data-e2-out]')).toHaveText('Add ciphertexts first.');
+  await page.locator('#vec-a').fill('1, missing, 3, 4');
+  await page.locator('[data-e2-enc-a]').click();
+  await expect(page.locator('#vec-a')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.locator('[data-e2-out]')).toContainText('exactly 4 real numbers');
+  await page.locator('#vec-a').fill('10,20,30,40');
+  for (const action of ['enc-a', 'add', 'dec']) await page.locator(`[data-e2-${action}]`).click();
+  await expect(page.locator('[data-e2-out]')).toContainText('Expected [10.500000, 21.300000, 32.800000, 44.100000]');
+});
+
+test('editing a multiplication input also cancels its pending status update', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('.');
+  await page.locator('[data-e3-enc]').click();
+  await page.locator('[data-e3-mul]').click();
+  await page.locator('#mul-b').fill('4,5');
+  await page.clock.fastForward(1200);
+  await expect(page.locator('[data-e3-status]')).toHaveText('Awaiting encrypt');
+  await page.locator('[data-e3-dec]').click();
+  await expect(page.locator('[data-e3-out]')).toHaveText('Run multiply then rescale first.');
+});

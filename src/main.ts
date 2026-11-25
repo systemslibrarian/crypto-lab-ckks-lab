@@ -342,7 +342,7 @@ app.innerHTML = `
           <div class="phase-label phase-label-orange">E — Tradeoffs</div>
           <p>
             ⚠ The result is approximate: per-slot error ~10<sup>-3</sup> at this toy scale.
-            Production CKKS (Δ=2<sup>40</sup>) achieves ~10<sup>-12</sup> precision.
+            At Δ=2<sup>40</sup>, one unit of coefficient rounding corresponds to about 9.1 × 10<sup>−13</sup> after division by Δ. Slot error also depends on encoding, encryption noise and subsequent operations.
             Each addition slightly increases accumulated noise.
           </p>
         </div>
@@ -855,14 +855,20 @@ for (const checkbox of [reactionPk, reactionC2s, reactionVisible]) checkbox.addE
 // Theme is owned by the shared Crypto Lab header (index.html). This module no
 // longer renders its own toggle, so there is nothing to wire up here.
 
-function parseVector(input: string, count = 4): number[] {
-  const values = input
-    .split(',')
-    .map((x) => Number(x.trim()))
-    .filter((x) => Number.isFinite(x))
-    .slice(0, count)
-  while (values.length < count) {
-    values.push(0)
+function readVector(id: string, count: number, feedback: HTMLElement): number[] | null {
+  const input = document.getElementById(id) as HTMLInputElement
+  const tokens = input.value.split(',').map(token => token.trim())
+  const values = tokens.map(Number)
+  const valid = tokens.length === count && tokens.every(token => token !== '') && values.every(Number.isFinite)
+  input.setAttribute('aria-invalid', String(!valid))
+  if (!valid) {
+    feedback.textContent = `Enter exactly ${count} real numbers, separated by commas.`
+    return null
+  }
+  if (values.some(v => !Number.isSafeInteger(Math.round(v * engine.params.baseScale)))) {
+    input.setAttribute('aria-invalid', 'true')
+    feedback.textContent = 'The scaled value exceeds this encoder’s numeric precision. Enter smaller values.'
+    return null
   }
   return values
 }
@@ -876,8 +882,12 @@ const e1Out = document.querySelector('[data-e1-out]') as HTMLElement
 ;(document.querySelector('[data-e1-run]') as HTMLButtonElement).addEventListener('click', () => {
   const raw = (document.getElementById('e1-value') as HTMLInputElement).value
   const v = Number(raw.trim())
-  if (!Number.isFinite(v)) {
+  if (raw.trim() === '' || !Number.isFinite(v)) {
     e1Out.textContent = 'Enter a single real number (e.g. 3.14).'
+    return
+  }
+  if (!Number.isSafeInteger(Math.round(v * engine.params.baseScale))) {
+    e1Out.textContent = 'The scaled value exceeds this encoder’s numeric precision. Enter a smaller number.'
     return
   }
   const ct = engine.encryptVector([v], 'e1')
@@ -888,12 +898,20 @@ const e1Out = document.querySelector('[data-e1-out]') as HTMLElement
     `<span class="e1-chip enc">🔒 RLWE ciphertext</span> <span class="e1-arrow">→ decrypt →</span> ` +
     `<span class="e1-chip out">${back.toFixed(4)}</span></span>` +
     `<span class="e1-note">Off by ${engine.scientific(err)} — that gap is CKKS's deliberate approximation, ` +
-    `not a bug. At production scale (Δ=2<sup>40</sup>) it shrinks to ~10<sup>-12</sup>.</span>`
+    `measured in this run. A larger scale reduces the contribution of rounding, while encryption noise and later operations also affect precision.</span>`
 })
 
 // ── Exhibit 2: encoding visualizer (slots → coeffs → +noise) ─
 const e2EncFlow = document.querySelector('[data-e2-encflow]') as HTMLElement
 const e2EncCap = document.querySelector('[data-e2-encflow-caption]') as HTMLElement
+
+document.getElementById('e1-value')!.addEventListener('input', () => {
+  e1Out.textContent = 'Run the round trip for this number.'
+})
+document.getElementById('e2-encvec')!.addEventListener('input', () => {
+  e2EncFlow.replaceChildren()
+  e2EncCap.textContent = 'Encode the new vector to see its coefficients.'
+})
 
 function coeffBoxes(vals: bigint[], cls: string, deltas?: bigint[]): string {
   return vals
@@ -905,7 +923,11 @@ function coeffBoxes(vals: bigint[], cls: string, deltas?: bigint[]): string {
 }
 
 ;(document.querySelector('[data-e2-encode]') as HTMLButtonElement).addEventListener('click', () => {
-  const vals = parseVector((document.getElementById('e2-encvec') as HTMLInputElement).value, 4)
+  const vals = readVector('e2-encvec', 4, e2EncCap)
+  if (!vals) {
+    e2EncFlow.replaceChildren()
+    return
+  }
   const t = engine.encodeTrace(vals)
   const slotBoxes = t.slots.map((v, i) => `<span class="cbox slot">s${i}=${v}</span>`).join('')
   e2EncFlow.innerHTML =
@@ -958,12 +980,31 @@ function renderCt(ct: CkksCiphertext, ideal?: number[]): string {
   return lines.join('\n')
 }
 
+function clearSum(): void {
+  e2Sum = null
+  e2SumEl.textContent = 'Add both ciphertexts, then decrypt.'
+  e2Out.textContent = 'Add the current ciphertexts to calculate their sum.'
+  e2Simd.replaceChildren()
+  e2TamperOut.textContent = 'Add both ciphertexts first, then nudge a coefficient.'
+}
+
+for (const name of ['A', 'B']) {
+  document.getElementById('vec-' + name.toLowerCase())!.addEventListener('input', () => {
+    if (name === 'A') {
+      e2A = null
+      e2Cta.textContent = 'Encrypt the edited vector A.'
+    } else {
+      e2B = null
+      e2Ctb.textContent = 'Encrypt the edited vector B.'
+    }
+    clearSum()
+  })
+}
+
 function refreshE2Views(): void {
-  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
-  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
-  if (e2A) e2Cta.textContent = renderCt(e2A, a)
-  if (e2B) e2Ctb.textContent = renderCt(e2B, b)
-  if (e2Sum) e2SumEl.textContent = renderCt(e2Sum, a.map((v, i) => v + b[i]))
+  if (e2A) e2Cta.textContent = renderCt(e2A, e2A.slots)
+  if (e2B) e2Ctb.textContent = renderCt(e2B, e2B.slots)
+  if (e2Sum) e2SumEl.textContent = renderCt(e2Sum, e2Sum.slots)
 }
 
 ;(Array.from(document.querySelectorAll('[data-e2-view]')) as HTMLButtonElement[]).forEach((btn) => {
@@ -983,14 +1024,18 @@ function refreshE2Views(): void {
 })
 
 ;(document.querySelector('[data-e2-enc-a]') as HTMLButtonElement).addEventListener('click', () => {
-  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
+  const a = readVector('vec-a', 4, e2Out)
+  if (!a) return
+  clearSum()
   e2A = engine.encryptVector(a, 'A')
   e2Cta.textContent = renderCt(e2A, a)
   e2Out.textContent = `A encoded slots: ${formatVec(a)} using Delta=${engine.params.baseScale}`
 })
 
 ;(document.querySelector('[data-e2-enc-b]') as HTMLButtonElement).addEventListener('click', () => {
-  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  const b = readVector('vec-b', 4, e2Out)
+  if (!b) return
+  clearSum()
   e2B = engine.encryptVector(b, 'B')
   e2Ctb.textContent = renderCt(e2B, b)
 })
@@ -1000,8 +1045,9 @@ function refreshE2Views(): void {
     e2Out.textContent = 'Encrypt A and B first.'
     return
   }
-  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
-  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  const a = e2A.slots
+  const b = e2B.slots
+  clearSum()
   e2Sum = engine.add(e2A, e2B, 'A+B')
   e2SumEl.textContent = renderCt(e2Sum, a.map((v, i) => v + b[i]))
   e2Out.textContent = 'Ciphertext addition done for all 4 slots in one SIMD operation.'
@@ -1030,27 +1076,27 @@ function renderSimd(a: number[], b: number[], actual: number[]): void {
 }
 
 ;(document.querySelector('[data-e2-dec]') as HTMLButtonElement).addEventListener('click', () => {
-  if (!e2Sum) {
+  if (!e2Sum || !e2A || !e2B) {
     e2Out.textContent = 'Add ciphertexts first.'
     return
   }
-  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
-  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  const a = e2A.slots
+  const b = e2B.slots
   const expected = a.map((v, i) => v + b[i])
   const actual = engine.decryptVector(e2Sum, 4)
   const err = engine.slotError(expected, actual)
-  e2Out.textContent = `Expected ${formatVec(expected)}\nActual ${formatVec(actual)}\nPer-slot error ${err.map((v) => engine.scientific(v)).join(', ')}\nApproximation error is small and bounded by scale/noise settings.`
+  e2Out.textContent = `Expected ${formatVec(expected)}\nActual ${formatVec(actual)}\nPer-slot error ${err.map((v) => engine.scientific(v)).join(', ')}`
   renderSimd(a, b, actual)
 })
 
 ;(document.querySelector('[data-e2-tamper]') as HTMLButtonElement).addEventListener('click', () => {
-  if (!e2Sum) {
+  if (!e2Sum || !e2A || !e2B) {
     e2TamperOut.textContent = 'Add both ciphertexts first, then tamper.'
     return
   }
   const idx = Number((document.getElementById('e2-tamper-idx') as HTMLSelectElement).value)
-  const a = parseVector((document.getElementById('vec-a') as HTMLInputElement).value)
-  const b = parseVector((document.getElementById('vec-b') as HTMLInputElement).value)
+  const a = e2A.slots
+  const b = e2B.slots
   const before = engine.decryptVector(e2Sum, 4)
   const tampered = engine.tamperC0(e2Sum, idx, BigInt(2 * engine.params.baseScale))
   const after = engine.decryptVector(tampered, 4)
@@ -1134,9 +1180,19 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   renderModchain(ct.level)
 }
 
+for (const id of ['mul-a', 'mul-b']) {
+  document.getElementById(id)!.addEventListener('input', () => {
+    e3A = e3B = e3Mul = null
+    e3Ct.textContent = 'Encrypt the edited inputs, then multiply.'
+    e3Out.textContent = 'Encrypt A and B first.'
+    updateE3State(null, 'Awaiting encrypt')
+  })
+}
+
 ;(document.querySelector('[data-e3-enc]') as HTMLButtonElement).addEventListener('click', () => {
-  const a = parseVector((document.getElementById('mul-a') as HTMLInputElement).value, 2)
-  const b = parseVector((document.getElementById('mul-b') as HTMLInputElement).value, 2)
+  const a = readVector('mul-a', 2, e3Out)
+  const b = readVector('mul-b', 2, e3Out)
+  if (!a || !b) return
   e3A = engine.encryptVector(a, 'mul-A')
   e3B = engine.encryptVector(b, 'mul-B')
   e3Mul = null
@@ -1162,7 +1218,9 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
   // animation narrates the two internal stages of a single multiply().
   renderPipeline('d2', 2)
   updateE3State(e3Mul, 'Multiplied → Δ², degree 2 (c0,c1,c2)')
+  const product = e3Mul
   window.setTimeout(() => {
+    if (product !== e3Mul) return
     renderPipeline('d2', 1)
     updateE3State(e3Mul, 'Relinearized → back to (c0,c1); rescale needed')
   }, 900)
@@ -1184,15 +1242,15 @@ function updateE3State(ct: CkksCiphertext | null, status: string): void {
 })
 
 ;(document.querySelector('[data-e3-dec]') as HTMLButtonElement).addEventListener('click', () => {
-  if (!e3Mul) {
+  if (!e3Mul || !e3A || !e3B) {
     e3Out.textContent = 'Run multiply then rescale first.'
     return
   }
-  const a = parseVector((document.getElementById('mul-a') as HTMLInputElement).value, 2)
-  const b = parseVector((document.getElementById('mul-b') as HTMLInputElement).value, 2)
+  const a = e3A.slots.slice(0, 2)
+  const b = e3B.slots
   const expected = a.map((v, i) => v * b[i])
   const out = engine.decryptVector(e3Mul, 2)
-  e3Out.textContent = `Decrypted result ≈ ${formatVec(out)}. Expected near ${formatVec(expected)}. Small precision loss after rescaling is expected.`
+  e3Out.textContent = `Decrypted result ≈ ${formatVec(out)}. Expected near ${formatVec(expected)}.`
 })
 
 const W1 = [
