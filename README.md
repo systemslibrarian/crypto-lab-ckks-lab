@@ -2,7 +2,7 @@
 
 ## What It Is
 
-CKKS Lab demonstrates CKKS (Cheon-Kim-Kim-Song, ASIACRYPT 2017) — the Fully Homomorphic Encryption scheme for approximate arithmetic on real numbers. Unlike BGV/BFV which produce exact integer results, CKKS deliberately introduces small approximation errors to enable efficient floating-point arithmetic on encrypted data. A CKKS ciphertext encodes a vector of real numbers (n/2 slots for polynomial degree n) and supports vectorized addition and multiplication directly on ciphertexts. CKKS is the FHE scheme behind encrypted machine learning inference — the ability to evaluate a neural network on encrypted input without the server ever seeing the plaintext data.
+CKKS Lab demonstrates CKKS (Cheon-Kim-Kim-Song, ASIACRYPT 2017) — a scheme for approximate arithmetic on encrypted real or complex slots. This lab implements a toy-parameter, leveled CKKS core: its modulus chain limits multiplication depth. Fully homomorphic CKKS uses bootstrapping to refresh ciphertexts and continue computing. This implementation has no bootstrap. Unlike BGV/BFV which produce exact integer results, CKKS deliberately introduces small approximation errors to enable efficient floating-point arithmetic on encrypted data. A CKKS ciphertext encodes a vector of real numbers (n/2 slots for polynomial degree n) and supports vectorized addition and multiplication directly on ciphertexts. CKKS is the FHE scheme behind encrypted machine learning inference — the ability to evaluate a neural network on encrypted input without the server ever seeing the plaintext data.
 
 The demo is built for a newcomer to follow start-to-finish: it opens with a one-click "encrypt 3.14, get 3.1401 back" round-trip, then makes the scheme's hardest idea — the canonical embedding — watchable by showing 4 real slot values flow into 8 integer polynomial coefficients and then pick up the tiny RLWE noise term. Ciphertexts render as legible centered "signal + noise" coefficients (with a raw-hex toggle), and you can corrupt a single coefficient and watch a decrypted slot drift, proving the encryption is real by interaction rather than by prose. Advanced material (the FHE decision panel, the RLWE foundation, scheme comparisons) is tucked behind "go deeper" reveals so it never blocks the first hands-on success.
 
@@ -66,8 +66,7 @@ Six exhibits:
 ## Bootstrapping cost — research update, 13 November 2026
 
 Exhibit 6 now labels the 18-second, 32768-slot figure from Bossuat et al. (2021)
-as a historical configuration, not a universal CKKS latency floor. Per-slot
-amortized cost and whole-operation latency remain separate.
+as a historical configuration. Set III took 18.1 seconds on one thread of a 3.5 GHz Intel Core i5-6600K for 32,768 slots, with 19.1 bits of mean precision, a 505-bit output modulus and a reported failure probability of `2^(-15.58)`. Dividing by the slot count gives about 0.55 ms per slot at full occupancy. A caller still waits for the whole refresh. [Bossuat et al., experimental results](https://eprint.iacr.org/2020/1203).
 
 [Köstler and Guimarães, *TUTTI*, ePrint 2026/2848](https://eprint.iacr.org/2026/2848)
 (9 November 2026; **preprint**, §6) report a 2.4-ms single-message refresh on
